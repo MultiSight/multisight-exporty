@@ -1,0 +1,5 @@
+<exporty_config>
+    <recorder_ip>127.0.0.1</recorder_ip>
+    <recorder_port>10010</recorder_port>
+    <log_file_path>C:\recorder\exporty_log.txt</log_file_path>
+</exporty_config>

@@ -1,0 +1,26 @@
+[Unit]
+Description=Exporty
+After=network.target
+Requires=network.target
+
+[Service]
+User=exporty
+WorkingDirectory=/usr/local/Pelco/Exporty
+PermissionsStartOnly=true
+ExecStartPre=/usr/local/Pelco/Exporty/exporty_exec_start_pre
+ExecStart=/usr/local/Pelco/Exporty/Exporty
+Type=forking
+
+# Start / Stop / Restart control parameters
+Restart=on-failure
+RestartSec=60
+TimeoutSec=60
+StartLimitAction=none
+
+# Must set StartLimitInterval to 0 to prevent auto-restart to stop
+# after it reaches the StartLimitInterval
+StartLimitInterval=0
+LimitCORE=infinity
+
+[Install]
+WantedBy=multi-user.target

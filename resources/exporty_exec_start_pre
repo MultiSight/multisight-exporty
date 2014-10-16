@@ -1,0 +1,13 @@
+#!/bin/bash
+
+if [ ! -d /data/exports ]; then
+  mkdir -p /data/exports
+fi
+
+if [ `stat -c "%a" /data` != "777" ] ; then
+  chmod 777 /data
+fi
+
+if [ `stat -c "%G:%U" /data/exports` != 'exporty:exporty' ] ; then
+  chown -R exporty:exporty /data/exports
+fi

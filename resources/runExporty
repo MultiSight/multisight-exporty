@@ -1,0 +1,8 @@
+#!/bin/bash
+
+export EXPORTY_HOME=`dirname $0`
+export LD_LIBRARY_PATH=${EXPORTY_HOME}/Libs
+
+cd ${EXPORTY_HOME}
+ulimit -c unlimited
+su -c ./Exporty exporty
