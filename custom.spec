@@ -50,18 +50,40 @@ mv "@CPACK_TOPLEVEL_DIRECTORY@/tmpBBroot" $RPM_BUILD_ROOT
 %post
 @CPACK_RPM_SPEC_POSTINSTALL@
 
+systemctl kill -s HUP  rsyslog.service || :
+systemctl enable exportyd.service
+
 %postun
 @CPACK_RPM_SPEC_POSTUNINSTALL@
 
 %pre
 @CPACK_RPM_SPEC_PREINSTALL@
 
+if [ "$1" == "2" ]; then
+    systemctl stop exportyd.service || :
+fi
+
+getent passwd exporty >/dev/null || useradd -Mr exporty >/dev/null || :
+
 %preun
 @CPACK_RPM_SPEC_PREUNINSTALL@
 
+if [ "$1" == "0" ]; then
+    systemctl stop exportyd.service || :
+    systemctl disable exportyd.service || :
+fi
+
+rm -f /usr/local/Pelco/Exporty/libs
+
+%posttrans
+if [[ -d /usr/local/Pelco/Exporty && ! -d /usr/local/Pelco/Exporty/libs ]]; then
+    ln -sf /usr/local/Pelco/GatewayLibs/libs /usr/local/Pelco/Exporty/libs
+fi
+
 %files
-%defattr(-,root,root,-)
+%defattr(-,exporty,exporty,-)
 @CPACK_RPM_INSTALL_FILES@
+%defattr(-,root,root,-)
 @CPACK_RPM_ABSOLUTE_INSTALL_FILES@
 @CPACK_RPM_USER_INSTALL_FILES@
 

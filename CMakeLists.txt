@@ -29,7 +29,7 @@ endif(CMAKE_SYSTEM MATCHES "Windows")
 include("${devel_artifacts_path}/build/base_app.cmake" NO_POLICY_SCOPE)
 
 install(TARGETS Exporty DESTINATION Exporty)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/resources/exporty_exec_start_pre DESTINATION Exporty)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/resources/exporty_exec_start_pre PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE DESTINATION Exporty)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/resources/exportyd.service DESTINATION /lib/systemd/system)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/resources/runExporty DESTINATION Exporty)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/resources/60_exporty_rsyslog.conf DESTINATION /etc/rsyslog.d)
