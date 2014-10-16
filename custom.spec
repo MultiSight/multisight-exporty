@@ -36,8 +36,6 @@ Vendor:         @CPACK_RPM_PACKAGE_VENDOR@
 %prep
 mv $RPM_BUILD_ROOT "@CPACK_TOPLEVEL_DIRECTORY@/tmpBBroot"
 
-#p build
-
 %install
 if [ -e $RPM_BUILD_ROOT ];
 then
