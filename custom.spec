@@ -71,13 +71,6 @@ if [ "$1" == "0" ]; then
     systemctl disable exportyd.service || :
 fi
 
-rm -f /usr/local/Pelco/Exporty/libs
-
-%posttrans
-if [[ -d /usr/local/Pelco/Exporty && ! -d /usr/local/Pelco/Exporty/libs ]]; then
-    ln -sf /usr/local/Pelco/GatewayLibs/libs /usr/local/Pelco/Exporty/libs
-fi
-
 %files
 %defattr(-,exporty,exporty,-)
 @CPACK_RPM_INSTALL_FILES@

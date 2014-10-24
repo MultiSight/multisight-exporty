@@ -32,4 +32,7 @@ ENDIF(CMAKE_SYSTEM MATCHES "Linux-")
 # Finally, setup our package file name
 SET(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${RELEASE}.${TARGET_ARCH}" )
 
+# output directory
+SET(CPACK_OUTPUT_FILE_PREFIX "${devel_artifacts_path}/packages")
+
 INCLUDE(CPack)
