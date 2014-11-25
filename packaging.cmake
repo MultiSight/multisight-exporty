@@ -1,11 +1,20 @@
 
+# Pass something like VERSION=1.2.3 to define your own Version
+IF(DEFINED ENV{VERSION})
+SET(VERSION $ENV{VERSION})
+ELSE(DEFINED ENV{VERSION})
+SET(VERSION 0.0.1)
+ENDIF(DEFINED ENV{VERSION})
+
 # Pass something like RELEASE=216010f.fc20 to define your own Release
-IF(NOT DEFINED RELEASE)
-SET(RELEASE "${CMAKE_SYSTEM_NAME}")
-ENDIF(NOT DEFINED RELEASE)
+IF(DEFINED ENV{RELEASE})
+SET(RELEASE $ENV{RELEASE})
+ELSE(DEFINED ENV{RELEASE})
+SET(RELEASE ${CMAKE_SYSTEM_NAME})
+ENDIF(DEFINED ENV{RELEASE})
 
 SET(CPACK_PACKAGE_NAME Exporty)
-SET(CPACK_PACKAGE_VERSION 1.0.0)
+SET(CPACK_PACKAGE_VERSION ${VERSION})
 SET(CPACK_PACKAGE_VENDOR "Schneider Electric")
 SET(CPACK_PACKAGE_GROUP "Multisight-Gateway")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "BAMF based video recorder.")
@@ -16,6 +25,7 @@ IF(CMAKE_SYSTEM MATCHES "Linux-")
 
   LIST(APPEND CPACK_GENERATOR RPM)
   SET(CPACK_RPM_PACKAGE_NAME Exporty)
+  SET(CPACK_RPM_PACKAGE_VERSION ${VERSION})
   SET(CPACK_RPM_PACKAGE_RELEASE ${RELEASE})
   SET(CPACK_RPM_SPEC_MORE_DEFINE "%define ignore \#") # work around for cpack issue
   SET(CPACK_RPM_USER_FILELIST "%ignore /usr" "%ignore /usr/local" "%ignore /usr/local/Pelco" "%ignore /lib" "%ignore /lib/systemd" "%ignore /lib/systemd/system" "%ignore /etc" "%ignore /etc/rsyslog.d")
