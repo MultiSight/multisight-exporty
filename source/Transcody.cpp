@@ -9,6 +9,7 @@
 #include "AVKit/AVMuxer.h"
 #include "AVKit/Options.h"
 #include "AVKit/Utils.h"
+#include "AVKit/FrameTypes.h"
 #include "FrameStoreClient/Video.h"
 #include "MediaParser/MediaParser.h"
 
@@ -219,7 +220,7 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
             {
                 bool key = (numFramesWritten == 0) ? true : false;
 
-                H264Encoder::H264EncoderFrameType frameType = H264Encoder::FRAME_TYPE_AUTO_GOP;
+                AVKit::FrameType frameType = AVKit::FRAME_TYPE_AUTO_GOP;
 
                 size_t encodedFrameSize = encoder->EncodeYUV420P( picture->Map(),
                                                                   encodedBuffer,
