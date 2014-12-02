@@ -10,6 +10,7 @@
 #include "AVKit/Options.h"
 #include "AVKit/Utils.h"
 #include "AVKit/FrameTypes.h"
+#include "VAKit/VAH264Encoder.h"
 #include "FrameStoreClient/Video.h"
 #include "MediaParser/MediaParser.h"
 
@@ -19,6 +20,7 @@ using namespace EXPORTY;
 using namespace WEBBY;
 using namespace FRAME_STORE_CLIENT;
 using namespace AVKit;
+using namespace VAKit;
 
 const unsigned int DECODE_BUFFER_SIZE = (1024*1024) * 2;
 const unsigned int BUFFER_PADDING = 16;
@@ -113,7 +115,7 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
     double sourceFramerate = resultStatistics.frameRate;
 
     XRef<H264Decoder> decoder = cacheItem->decoder;
-    XRef<H264Encoder> encoder = cacheItem->encoder;
+    XRef<Encoder> encoder = cacheItem->encoder;
     XRef<AVMuxer> muxer = cacheItem->muxer;
 
     if( _bitRate >= transcodeThresholdBitRate )
@@ -346,7 +348,7 @@ void Transcody::_PopulateSessionCache()
     _cache->Put( _sessionID, cacheItem );
 }
 
-void Transcody::_FinishConfig( XRef<H264Decoder> decoder, XRef<H264Encoder>& encoder, XRef<AVMuxer>& muxer )
+void Transcody::_FinishConfig( XRef<H264Decoder> decoder, XRef<Encoder>& encoder, XRef<AVMuxer>& muxer )
 {
     XRef<TranscodyCacheItem> cacheItem;
     _cache->Get( _sessionID, cacheItem );
@@ -365,7 +367,7 @@ void Transcody::_FinishConfig( XRef<H264Decoder> decoder, XRef<H264Encoder>& enc
     _cache->Put( _sessionID, cacheItem );
 }
 
-void Transcody::_UpdateConfig( XRef<H264Decoder> decoder, XRef<H264Encoder>& encoder, XRef<AVMuxer> muxer )
+void Transcody::_UpdateConfig( XRef<H264Decoder> decoder, XRef<Encoder>& encoder, XRef<AVMuxer> muxer )
 {
     XRef<TranscodyCacheItem> cacheItem;
     _cache->Get( _sessionID, cacheItem );
@@ -380,7 +382,7 @@ void Transcody::_UpdateConfig( XRef<H264Decoder> decoder, XRef<H264Encoder>& enc
     _cache->Put( _sessionID, cacheItem );
 }
 
-XRef<H264Encoder> Transcody::_CreateEncoder( XRef<H264Decoder> decoder )
+XRef<Encoder> Transcody::_CreateEncoder( XRef<H264Decoder> decoder )
 {
     AspectCorrectDimensions( decoder->GetInputWidth(), decoder->GetInputHeight(),
                              _width, _height,
@@ -409,10 +411,15 @@ XRef<H264Encoder> Transcody::_CreateEncoder( XRef<H264Decoder> decoder )
 
     options.gop_size = 150;
 
-    return new H264Encoder( options );
+    if( _config->HasDRIEncoder() )
+    {
+        options.device_path = "/dev/dri/card0";
+        return new VAH264Encoder( options );
+    }
+    else return new H264Encoder( options );
 }
 
-bool Transcody::_EncoderNeedsInit( XRef<AVKit::H264Encoder> encoder )
+bool Transcody::_EncoderNeedsInit( XRef<AVKit::Encoder> encoder )
 {
     bool different = false;
 

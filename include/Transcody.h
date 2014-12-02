@@ -7,7 +7,7 @@
 #include "XSDK/XHash.h"
 #include "XSDK/XCache.h"
 #include "AVKit/H264Decoder.h"
-#include "AVKit/H264Encoder.h"
+#include "AVKit/Encoder.h"
 #include "Config.h"
 #include "TranscodyCacheItem.h"
 
@@ -49,16 +49,16 @@ private:
     void _PopulateSessionCache();
 
     void _FinishConfig( XRef<AVKit::H264Decoder> decoder,
-                        XRef<AVKit::H264Encoder>& encoder,
+                        XRef<AVKit::Encoder>& encoder,
                         XRef<AVKit::AVMuxer>& muxer );
 
     void _UpdateConfig( XRef<AVKit::H264Decoder> decoder,
-                        XRef<AVKit::H264Encoder>& encoder,
+                        XRef<AVKit::Encoder>& encoder,
                         XRef<AVKit::AVMuxer> muxer );
 
-    XRef<AVKit::H264Encoder> _CreateEncoder( XRef<AVKit::H264Decoder> decoder );
+    XRef<AVKit::Encoder> _CreateEncoder( XRef<AVKit::H264Decoder> decoder );
 
-    bool _EncoderNeedsInit( XRef<AVKit::H264Encoder> encoder );
+    bool _EncoderNeedsInit( XRef<AVKit::Encoder> encoder );
 
     void _GetResolution( const XIRef<XSDK::XMemory> sps, uint16_t& width, uint16_t& height ) const;
 
