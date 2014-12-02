@@ -18,6 +18,8 @@ public:
 
     X_API XSDK::XString GetLogFilePath() const;
 
+    X_API bool HasDRIEncoder() const;
+
 private:
     Config( const Config& obj );
     Config& operator = ( const Config& obj );
@@ -25,6 +27,7 @@ private:
     XSDK::XString _recorderIP;
     int _recorderPort;
     XSDK::XString _logFilePath;
+    bool _hasDRIEncoding;
 };
 
 }

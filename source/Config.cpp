@@ -4,15 +4,20 @@
 #include "XSDK/XPath.h"
 #include "XSDK/XDomParser.h"
 #include "XSDK/XDomParserNode.h"
+#include "VAKit/VAH264Encoder.h"
+#include "AVKit/Options.h"
 
 using namespace XSDK;
 using namespace std;
 using namespace EXPORTY;
+using namespace AVKit;
+using namespace VAKit;
 
 Config::Config() :
     _recorderIP( "127.0.0.1" ),
     _recorderPort( 10013 ),
-    _logFilePath( "" )
+    _logFilePath( "" ),
+    _hasDRIEncoding( false )
 {
     if( XPath::Exists( "config.xml" ) )
     {
@@ -43,6 +48,25 @@ Config::Config() :
                 _logFilePath = searchResults.front()->GetData();
         }
     }
+
+    try
+    {
+        CodecOptions options;
+        options.width = 640;
+        options.height = 360;
+        options.bit_rate = 125000;
+        options.gop_size = 15;
+        options.time_base_num = 1;
+        options.time_base_den = 15;
+
+        XRef<VAH264Encoder> encoder = new VAH264Encoder( options, "/dev/dri/card0" );
+
+        _hasDRIEncoding = true;
+    }
+    catch(...)
+    {
+        X_LOG_NOTICE("/dev/dri/card0 device not supported for encoding.");
+    }
 }
 
 Config::~Config() throw()
@@ -62,4 +86,9 @@ int Config::GetRecorderPort() const
 XString Config::GetLogFilePath() const
 {
     return _logFilePath;
+}
+
+bool Config::HasDRIEncoder() const
+{
+    return _hasDRIEncoding;
 }
