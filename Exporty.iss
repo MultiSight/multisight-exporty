@@ -290,6 +290,7 @@ Source: "..\devel_artifacts\lib\swscale-3.dll"; DestDir: "{app}"; Flags: ignorev
 Source: "..\devel_artifacts\lib\xsdk.dll"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\devel_artifacts\lib\webby.dll"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\devel_artifacts\lib\avkit.dll"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\devel_artifacts\lib\vakit.dll"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\devel_artifacts\lib\FrameStoreClient.dll"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\devel_artifacts\lib\MediaParser.dll"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
