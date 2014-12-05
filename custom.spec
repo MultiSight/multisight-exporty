@@ -61,8 +61,6 @@ if [ "$1" == "2" ]; then
     systemctl stop exportyd.service || :
 fi
 
-getent passwd exporty >/dev/null || useradd -Mr exporty >/dev/null || :
-
 %preun
 @CPACK_RPM_SPEC_PREUNINSTALL@
 
@@ -72,7 +70,7 @@ if [ "$1" == "0" ]; then
 fi
 
 %files
-%defattr(-,exporty,exporty,-)
+%defattr(-,root,root,-)
 @CPACK_RPM_INSTALL_FILES@
 %defattr(-,root,root,-)
 @CPACK_RPM_ABSOLUTE_INSTALL_FILES@

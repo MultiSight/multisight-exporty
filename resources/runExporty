@@ -5,4 +5,4 @@ export LD_LIBRARY_PATH=${EXPORTY_HOME}/Libs
 
 cd ${EXPORTY_HOME}
 ulimit -c unlimited
-su -c ./Exporty exporty
+su -c ./Exporty

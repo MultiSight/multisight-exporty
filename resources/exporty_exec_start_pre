@@ -8,6 +8,6 @@ if [ `stat -c "%a" /data` != "777" ] ; then
   chmod 777 /data
 fi
 
-if [ `stat -c "%G:%U" /data/exports` != 'exporty:exporty' ] ; then
-  chown -R exporty:exporty /data/exports
+if [ `stat -c "%G:%U" /data/exports` != 'root:root' ] ; then
+  chown -R root:root /data/exports
 fi

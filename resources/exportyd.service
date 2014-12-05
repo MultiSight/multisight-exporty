@@ -4,7 +4,7 @@ After=network.target
 Requires=network.target
 
 [Service]
-User=exporty
+User=root
 WorkingDirectory=/usr/local/Pelco/Exporty
 PermissionsStartOnly=true
 ExecStartPre=/usr/local/Pelco/Exporty/exporty_exec_start_pre
