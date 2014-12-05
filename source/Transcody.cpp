@@ -117,7 +117,7 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
     XRef<H264Decoder> decoder = cacheItem->decoder;
     XRef<Encoder> encoder = cacheItem->encoder;
     XRef<AVMuxer> muxer = cacheItem->muxer;
-
+#if 0
     if( _bitRate >= transcodeThresholdBitRate )
     {
         // If the requested bitrate is greater than the bitrate of the source, then transcoding it makes no sense...
@@ -163,6 +163,7 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
         }
     }
     else
+#endif
     {
         double outputFramesPerInputFrame = (_framerate / sourceFramerate);
 

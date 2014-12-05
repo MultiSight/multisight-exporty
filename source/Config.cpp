@@ -51,6 +51,7 @@ Config::Config() :
 
     try
     {
+#if 0
         CodecOptions options;
         options.width = 640;
         options.height = 360;
@@ -58,9 +59,10 @@ Config::Config() :
         options.gop_size = 15;
         options.time_base_num = 1;
         options.time_base_den = 15;
+        options.device_path = "/dev/dri/card0";
 
         XRef<VAH264Encoder> encoder = new VAH264Encoder( options, "/dev/dri/card0" );
-
+#endif
         _hasDRIEncoding = true;
     }
     catch(...)
