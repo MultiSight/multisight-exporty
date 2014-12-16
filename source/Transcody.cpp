@@ -11,6 +11,7 @@
 #include "AVKit/Utils.h"
 #include "AVKit/FrameTypes.h"
 #include "VAKit/VAH264Encoder.h"
+#include "VAKit/VAH264Decoder.h"
 #include "FrameStoreClient/Video.h"
 #include "MediaParser/MediaParser.h"
 
@@ -341,7 +342,9 @@ void Transcody::_PopulateSessionCache()
 {
     XRef<TranscodyCacheItem> cacheItem = new TranscodyCacheItem;
 
-    cacheItem->decoder = new H264Decoder( GetFastH264DecoderOptions() );
+    if( _config->HasDRIDecoder() )
+        cacheItem->decoder = new VAH264Decoder( GetFastH264DecoderOptions( "/dev/dri/card0" ) );
+    else cacheItem->decoder = new H264Decoder( GetFastH264DecoderOptions() );
 
     cacheItem->framerateStep = 0.0;
 
