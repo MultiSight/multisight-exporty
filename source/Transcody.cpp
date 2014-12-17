@@ -10,8 +10,10 @@
 #include "AVKit/Options.h"
 #include "AVKit/Utils.h"
 #include "AVKit/FrameTypes.h"
+#ifndef WIN32
 #include "VAKit/VAH264Encoder.h"
 #include "VAKit/VAH264Decoder.h"
+#endif
 #include "FrameStoreClient/Video.h"
 #include "MediaParser/MediaParser.h"
 
@@ -21,7 +23,9 @@ using namespace EXPORTY;
 using namespace WEBBY;
 using namespace FRAME_STORE_CLIENT;
 using namespace AVKit;
+#ifndef WIN32
 using namespace VAKit;
+#endif
 
 const unsigned int DECODE_BUFFER_SIZE = (1024*1024) * 2;
 const unsigned int BUFFER_PADDING = 16;

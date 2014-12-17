@@ -13,7 +13,7 @@ set(SOURCES source/Main.cpp
             source/Transcody.cpp
             source/TranscodeExport.cpp)
 
-set(WINDOWS_LIBS XSDK ws2_32 Webby MediaParser FrameStoreClient AVKit VAKit)
+set(WINDOWS_LIBS XSDK ws2_32 Webby MediaParser FrameStoreClient AVKit)
 set(LINUX_LIBS XSDK Webby MediaParser FrameStoreClient AVKit VAKit)
 
 add_definitions(-D__STDC_CONSTANT_MACROS)

@@ -4,15 +4,19 @@
 #include "XSDK/XPath.h"
 #include "XSDK/XDomParser.h"
 #include "XSDK/XDomParserNode.h"
+#ifndef WIN32
 #include "VAKit/VAH264Encoder.h"
 #include "VAKit/VAH264Decoder.h"
+#endif
 #include "AVKit/Options.h"
 
 using namespace XSDK;
 using namespace std;
 using namespace EXPORTY;
 using namespace AVKit;
+#ifndef WIN32
 using namespace VAKit;
+#endif
 
 Config::Config() :
     _recorderIP( "127.0.0.1" ),
