@@ -53,6 +53,7 @@ Config::Config() :
 
     try
     {
+#ifndef WIN32
         CodecOptions options;
         options.width = 640;
         options.height = 360;
@@ -65,6 +66,7 @@ Config::Config() :
         XRef<VAH264Encoder> encoder = new VAH264Encoder( options, "/dev/dri/card0" );
 
         _hasDRIEncoding = true;
+#endif
     }
     catch(...)
     {
@@ -73,9 +75,11 @@ Config::Config() :
 
     try
     {
+#ifndef WIN32
         XRef<VAH264Decoder> encoder = new VAH264Decoder( GetFastH264DecoderOptions( "/dev/dri/card0" ) );
 
         _hasDRIDecoding = true;
+#endif
     }
     catch(...)
     {

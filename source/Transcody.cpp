@@ -342,9 +342,13 @@ void Transcody::_PopulateSessionCache()
 {
     XRef<TranscodyCacheItem> cacheItem = new TranscodyCacheItem;
 
+#ifdef WIN32
+    cacheItem->decoder = new H264Decoder( GetFastH264DecoderOptions() );
+#else
     if( _config->HasDRIDecoder() )
         cacheItem->decoder = new VAH264Decoder( GetFastH264DecoderOptions( "/dev/dri/card0" ) );
     else cacheItem->decoder = new H264Decoder( GetFastH264DecoderOptions() );
+#endif
 
     cacheItem->framerateStep = 0.0;
 
@@ -414,12 +418,16 @@ XRef<Encoder> Transcody::_CreateEncoder( XRef<H264Decoder> decoder )
 
     options.gop_size = 150;
 
+#ifdef WIN32
+    return new H264Encoder( options );
+#else
     if( _config->HasDRIEncoder() )
     {
         options.device_path = "/dev/dri/card0";
         return new VAH264Encoder( options );
     }
     else return new H264Encoder( options );
+#endif
 }
 
 bool Transcody::_EncoderNeedsInit( XRef<AVKit::Encoder> encoder )
