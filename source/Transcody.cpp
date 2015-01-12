@@ -40,6 +40,7 @@ Transcody::Transcody( XRef<Config> config,
                       const XString& width,
                       const XString& height,
                       const XString& bitRate,
+                      const XString& initialQP,
                       const XString& framerate,
                       const XString& profile,
                       const XString& qmin,
@@ -55,6 +56,7 @@ Transcody::Transcody( XRef<Config> config,
     _width( width.ToUInt16() ),
     _height( height.ToUInt16() ),
     _bitRate( bitRate.ToUInt32() ),
+    _initialQP( initialQP.ToInt() ),
     _framerate( framerate.ToDouble() ),
     _profile( profile ),
     _qmin( qmin ),
@@ -428,6 +430,10 @@ XRef<Encoder> Transcody::_CreateEncoder( XRef<H264Decoder> decoder )
     if( _config->HasDRIEncoder() )
     {
         options.device_path = "/dev/dri/card0";
+
+        if( _initialQP != -1 )
+            options.initial_qp = _initialQP;
+
         return new VAH264Encoder( options );
     }
     else return new H264Encoder( options );

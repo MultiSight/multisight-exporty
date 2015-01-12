@@ -123,6 +123,10 @@ XIRef<XMemory> LargeExport::_GetExtraData( XIRef<XMemory> sps, XIRef<XMemory> pp
 
 XString LargeExport::_GetTMPName( const XString& fileName ) const
 {
+#ifdef WIN32
+    X_THROW(("This function has a bug on Windows. I am throwing here so that if anyone uses it on Windows, I wont forget about it.")); // The bug is at least that the Split() below should operate on PATH_SLASH not "/".
+#endif
+
     vector<XString> parts;
     fileName.Split( "/", parts );
 

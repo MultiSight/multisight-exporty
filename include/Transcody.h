@@ -26,6 +26,7 @@ public:
                const XSDK::XString& width,
                const XSDK::XString& height,
                const XSDK::XString& bitRate,
+               const XSDK::XString& initialQP,
                const XSDK::XString& framerate,
                const XSDK::XString& profile,
                const XSDK::XString& qmin,
@@ -74,6 +75,7 @@ private:
     uint16_t _height;
 
     uint32_t _bitRate;
+    int _initialQP;
     double _framerate;
     XSDK::XString _profile;
     XSDK::XString _qmin;

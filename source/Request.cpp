@@ -155,6 +155,11 @@ void* Request::EntryPoint()
                         bitRate = *getArgs.Find( "bit_rate" );
                     else bitRate = DEFAULT_ENCODE_BIT_RATE;
 
+                    XString initialQP;
+                    if( getArgs.Find( "initial_qp" ) )
+                        initialQP = *getArgs.Find( "initial_qp" );
+                    else initialQP = "-1";
+
                     XString framerate;
                     if( getArgs.Find( "framerate" ) )
                         framerate = *getArgs.Find( "framerate" );
@@ -235,6 +240,7 @@ void* Request::EntryPoint()
                                                                     width,
                                                                     height,
                                                                     bitRate,
+                                                                    initialQP,
                                                                     framerate,
                                                                     profile,
                                                                     qmin,
