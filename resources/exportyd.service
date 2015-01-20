@@ -4,6 +4,7 @@ After=network.target
 Requires=network.target
 
 [Service]
+EnvironmentFile=-/data/gateway/timezone
 User=root
 WorkingDirectory=/usr/local/Pelco/Exporty
 PermissionsStartOnly=true
