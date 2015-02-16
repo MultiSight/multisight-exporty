@@ -58,18 +58,7 @@ Config::Config() :
     try
     {
 #ifndef WIN32
-        CodecOptions options;
-        options.width = 640;
-        options.height = 360;
-        options.bit_rate = 125000;
-        options.gop_size = 15;
-        options.time_base_num = 1;
-        options.time_base_den = 15;
-        options.device_path = "/dev/dri/card0";
-
-        XRef<VAH264Encoder> encoder = new VAH264Encoder( options, "/dev/dri/card0" );
-
-        _hasDRIEncoding = true;
+        _hasDRIEncoding = VAH264Encoder::HasHW( "/dev/dri/card0" );
 #endif
     }
     catch(...)
@@ -80,9 +69,7 @@ Config::Config() :
     try
     {
 #ifndef WIN32
-        XRef<VAH264Decoder> encoder = new VAH264Decoder( GetFastH264DecoderOptions( "/dev/dri/card0" ) );
-
-        _hasDRIDecoding = true;
+        _hasDRIDecoding = VAH264Decoder::HasHW( "/dev/dri/card0" );
 #endif
     }
     catch(...)
