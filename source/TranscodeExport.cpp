@@ -225,13 +225,13 @@ void TranscodeExport::Create( XIRef<XMemory> output )
                                         traversalNum,
                                         traversalDen );
 
-                yuvToARGB->Transform( decoder.MakeYUV420P(), decoder.GetOutputWidth(), decoder.GetOutputHeight() );
+                yuvToARGB->Transform( decoder.Get(), decoder.GetOutputWidth(), decoder.GetOutputHeight() );
 
-                XIRef<XMemory> rgb = yuvToARGB->GetARGB24();
+                XIRef<XMemory> rgb = yuvToARGB->Get();
 
                 argbToYUV->Transform( ft->Process( rgb ), decoder.GetOutputWidth(), decoder.GetOutputHeight() );
 
-                transcoder->EncodeYUV420PAndMux( *encoder, *muxer, argbToYUV->GetYUV420P() );
+                transcoder->EncodeYUV420PAndMux( *encoder, *muxer, argbToYUV->Get() );
             }
         }
     }

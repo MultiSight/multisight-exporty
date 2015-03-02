@@ -136,8 +136,6 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
     XRef<Encoder> encoder = cacheItem->encoder;
     XRef<AVMuxer> muxer = cacheItem->muxer;
 
-    XIRef<Packet> pkt = new Packet;
-
     if( _bitRate >= transcodeThresholdBitRate )
     {
         // If the requested bitrate is greater than the bitrate of the source, then transcoding it makes no sense...
@@ -172,16 +170,7 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
 
             lastFrameTS = resultParser->GetFrameTS();
 
-            size_t frameSize = resultParser->GetFrameSize();
-
-            if( (frameSize + BUFFER_PADDING) > DECODE_BUFFER_SIZE )
-                X_THROW(( "Frame is too large to be decoded." ));
-
-            resultParser->GetFrame( _decodeBuffer );
-
-            pkt->Config( _decodeBuffer, frameSize, false );
-
-            muxer->WriteVideoPacket( pkt, resultParser->IsKey() );
+            muxer->WriteVideoPacket( resultParser->Get(), resultParser->IsKey() );
         }
     }
     else
@@ -194,8 +183,6 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
         int numFramesWritten = 0;
 
         int videoStreamIndex = resultParser->GetVideoStreamIndex();
-
-        XIRef<Packet> pkt = new Packet;
 
         while( !doneDecoding || !doneEncoding )
         {
@@ -213,16 +200,7 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
 
                 lastFrameTS = resultParser->GetFrameTS();
 
-                size_t frameSize = resultParser->GetFrameSize();
-
-                if( (frameSize + BUFFER_PADDING) > DECODE_BUFFER_SIZE )
-                    X_THROW(( "Frame is too large to be decoded." ));
-
-                resultParser->GetFrame( _decodeBuffer );
-
-                pkt->Config( _decodeBuffer, frameSize, false );
-
-                decoder->Decode( pkt );
+                decoder->Decode( resultParser->Get() );
 
                 framerateStep += outputFramesPerInputFrame;
 

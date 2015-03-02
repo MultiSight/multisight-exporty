@@ -56,10 +56,15 @@ XIRef<XMemory> CreateJPEGThumbnail( XRef<Config> config,
 
     XRef<H264Decoder> decoder = new H264Decoder( _GetDecoderCodecOptions() );
 
-    decoder->Decode( FRAME_STORE_CLIENT::FetchFrame( config->GetRecorderIP(),
-                                                     config->GetRecorderPort(),
-                                                     dataSourceID,
-                                                     time ) );
+    XIRef<XMemory> frame = FRAME_STORE_CLIENT::FetchFrame( config->GetRecorderIP(),
+                                                           config->GetRecorderPort(),
+                                                           dataSourceID,
+                                                           time );
+
+    XIRef<Packet> pkt = new Packet;
+    pkt->Config( frame->Map(), frame->GetDataSize(), false );
+
+    decoder->Decode( pkt );
 
     uint16_t correctedWidth = 0, correctedHeight = 0;
 

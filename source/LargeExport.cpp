@@ -79,26 +79,13 @@ void LargeExport::Create( XIRef<XMemory> output )
 
         int videoStreamIndex = resultParser->GetVideoStreamIndex();
 
-        XIRef<Packet> pkt = new Packet;
-
         int streamIndex = 0;
         while( resultParser->ReadFrame( streamIndex ) )
         {
             if( streamIndex != videoStreamIndex )  // For now, we only support video stream exports.
                 continue;
 
-            XIRef<XMemory> frameBuffer = new XMemory;
-
-            uint32_t frameSize = resultParser->GetFrameSize();
-
-            uint32_t frameBufferSize = (frameSize % 8)?frameSize+(8-(frameSize%8)):frameSize;
-
-            resultParser->GetFrame( &frameBuffer->Extend( frameBufferSize ) );
-
-            // This code can be optimized. If the Recorder could be modified to add padding to each frame in a result
-            // we could use the non owing capabilities of AVKit::Packet... and we'd be able to avoid ANY buffer copies
-            // while exporting...
-            pkt->Config( frameBuffer->Map(), frameBuffer->GetDataSize(), false );
+            XIRef<Packet> pkt = resultParser->Get();
 
             _muxer->WriteVideoPacket( pkt, resultParser->IsKey() );
         }
