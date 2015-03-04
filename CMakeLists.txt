@@ -14,7 +14,7 @@ set(SOURCES source/Main.cpp
             source/TranscodeExport.cpp)
 
 set(WINDOWS_LIBS XSDK ws2_32 Webby MediaParser FrameStoreClient AVKit)
-set(LINUX_LIBS XSDK Webby MediaParser FrameStoreClient AVKit VAKit)
+set(LINUX_LIBS XSDK Webby MediaParser FrameStoreClient AVKit VAKit cairo)
 
 add_definitions(-D__STDC_CONSTANT_MACROS)
 
@@ -23,7 +23,7 @@ if(CMAKE_SYSTEM MATCHES "Windows")
     set(APPLICATION_TYPE "WINDOWS_CONSOLE")
 elseif(CMAKE_SYSTEM MATCHES "Linux")
     set(APPLICATION_TYPE "NORMAL")
-#    include_directories(/usr/include/ffmpeg)
+    include_directories(/usr/include/cairo)
 endif(CMAKE_SYSTEM MATCHES "Windows")
 
 include("${devel_artifacts_path}/build/base_app.cmake" NO_POLICY_SCOPE)
