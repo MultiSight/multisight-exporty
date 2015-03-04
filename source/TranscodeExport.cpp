@@ -21,7 +21,7 @@
 #include "AVKit/Utils.h"
 #include <vector>
 
-//#include <cairo.h>
+#include <cairo.h>
 
 using namespace EXPORTY;
 using namespace XSDK;
@@ -52,8 +52,6 @@ public:
 
     XIRef<XMemory> Process( XIRef<XMemory> input )
     {
-        X_THROW(("This feature has been disabled. See Tony for details..."));
-#if 0
         cairo_surface_t* surface = NULL;
         cairo_t* cr = NULL;
 
@@ -115,7 +113,6 @@ public:
 
             throw;
         }
-#endif
     }
 
 private:
