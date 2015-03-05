@@ -85,15 +85,9 @@ void LargeExport::Create( XIRef<XMemory> output )
             if( streamIndex != videoStreamIndex )  // For now, we only support video stream exports.
                 continue;
 
-            XIRef<XMemory> frameBuffer = new XMemory;
+            XIRef<Packet> pkt = resultParser->Get();
 
-            uint32_t frameSize = resultParser->GetFrameSize();
-
-            uint32_t frameBufferSize = (frameSize % 8)?frameSize+(8-(frameSize%8)):frameSize;
-
-            resultParser->GetFrame( &frameBuffer->Extend( frameBufferSize ) );
-
-            _muxer->WriteVideoFrame( frameBuffer, resultParser->IsKey() );
+            _muxer->WriteVideoPacket( pkt, resultParser->IsKey() );
         }
     }
 

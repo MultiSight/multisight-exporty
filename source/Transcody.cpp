@@ -20,6 +20,7 @@
 #include "AVKit/Options.h"
 #include "AVKit/Utils.h"
 #include "AVKit/FrameTypes.h"
+#include "AVKit/Packet.h"
 #ifndef WIN32
 #include "VAKit/VAH264Encoder.h"
 #include "VAKit/VAH264Decoder.h"
@@ -169,14 +170,7 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
 
             lastFrameTS = resultParser->GetFrameTS();
 
-            size_t frameSize = resultParser->GetFrameSize();
-
-            if( (frameSize + BUFFER_PADDING) > DECODE_BUFFER_SIZE )
-                X_THROW(( "Frame is too large to be decoded." ));
-
-            resultParser->GetFrame( _decodeBuffer );
-
-            muxer->WriteVideoFrame( _decodeBuffer, frameSize, resultParser->IsKey() );
+            muxer->WriteVideoPacket( resultParser->Get(), resultParser->IsKey() );
         }
     }
     else
@@ -206,14 +200,7 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
 
                 lastFrameTS = resultParser->GetFrameTS();
 
-                size_t frameSize = resultParser->GetFrameSize();
-
-                if( (frameSize + BUFFER_PADDING) > DECODE_BUFFER_SIZE )
-                    X_THROW(( "Frame is too large to be decoded." ));
-
-                resultParser->GetFrame( _decodeBuffer );
-
-                decoder->Decode( _decodeBuffer, frameSize );
+                decoder->Decode( resultParser->Get() );
 
                 framerateStep += outputFramesPerInputFrame;
 
@@ -230,6 +217,23 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
                 }
             }
 
+            XIRef<Packet> picture = decoder->Get();
+
+            while( framerateStep >= 1.0 && !doneEncoding )
+            {
+                bool key = (numFramesWritten == 0) ? true : false;
+
+                AVKit::FrameType frameType = AVKit::FRAME_TYPE_AUTO_GOP;
+
+                encoder->EncodeYUV420P( picture, frameType );
+
+                muxer->WriteVideoPacket( encoder->Get(), key );
+
+                numFramesWritten++;
+                framerateStep -= 1.0;
+            }
+
+#if 0
             XIRef<XMemory> picture = decoder->MakeYUV420P();
 
             XIRef<XMemory> encoded = new XMemory( ENCODED_FRAME_BUFFER + BUFFER_PADDING );
@@ -251,6 +255,7 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
                 numFramesWritten++;
                 framerateStep -= 1.0;
             }
+#endif
 
             if( doneDecoding && (framerateStep < 1.0) )
                 doneEncoding = true;

@@ -56,10 +56,15 @@ XIRef<XMemory> CreateJPEGThumbnail( XRef<Config> config,
 
     XRef<H264Decoder> decoder = new H264Decoder( _GetDecoderCodecOptions() );
 
-    decoder->Decode( FRAME_STORE_CLIENT::FetchFrame( config->GetRecorderIP(),
-                                                     config->GetRecorderPort(),
-                                                     dataSourceID,
-                                                     time ) );
+    XIRef<XMemory> frame = FRAME_STORE_CLIENT::FetchFrame( config->GetRecorderIP(),
+                                                           config->GetRecorderPort(),
+                                                           dataSourceID,
+                                                           time );
+
+    XIRef<Packet> pkt = new Packet;
+    pkt->Config( frame->Map(), frame->GetDataSize(), false );
+
+    decoder->Decode( pkt );
 
     uint16_t correctedWidth = 0, correctedHeight = 0;
 
@@ -72,7 +77,18 @@ XIRef<XMemory> CreateJPEGThumbnail( XRef<Config> config,
 
     XRef<JPEGEncoder> encoder = new JPEGEncoder( GetJPEGOptions( correctedWidth, correctedHeight, bitRate, qmin, qmax ) );
 
-    return encoder->EncodeYUV420P( decoder->MakeYUV420P() );
+    encoder->EncodeYUV420P( decoder->Get() );
+
+    // This code can be optimized... If the return value of this function was modified to be AVPacket, we could avoid
+    // a buffer copy here...
+
+    XIRef<Packet> encodedPkt = encoder->Get();
+
+    XIRef<XMemory> result = new XMemory;
+
+    memcpy( &result->Extend( encodedPkt->GetDataSize() ), encodedPkt->Map(), encodedPkt->GetDataSize() );
+
+    return result;
 }
 
 }
