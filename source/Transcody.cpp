@@ -233,30 +233,6 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
                 framerateStep -= 1.0;
             }
 
-#if 0
-            XIRef<XMemory> picture = decoder->MakeYUV420P();
-
-            XIRef<XMemory> encoded = new XMemory( ENCODED_FRAME_BUFFER + BUFFER_PADDING );
-            uint8_t* encodedBuffer = &encoded->Extend( ENCODED_FRAME_BUFFER );
-
-            while( framerateStep >= 1.0 && !doneEncoding )
-            {
-                bool key = (numFramesWritten == 0) ? true : false;
-
-                AVKit::FrameType frameType = AVKit::FRAME_TYPE_AUTO_GOP;
-
-                size_t encodedFrameSize = encoder->EncodeYUV420P( picture->Map(),
-                                                                  encodedBuffer,
-                                                                  ENCODED_FRAME_BUFFER,
-                                                                  frameType );
-
-                muxer->WriteVideoFrame( encodedBuffer, encodedFrameSize, key );
-
-                numFramesWritten++;
-                framerateStep -= 1.0;
-            }
-#endif
-
             if( doneDecoding && (framerateStep < 1.0) )
                 doneEncoding = true;
         }
