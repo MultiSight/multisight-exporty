@@ -50,7 +50,7 @@ public:
     {
     }
 
-    XIRef<XMemory> Process( XIRef<XMemory> input )
+    XIRef<Packet> Process( XIRef<Packet> input )
     {
         cairo_surface_t* surface = NULL;
         cairo_t* cr = NULL;
@@ -94,9 +94,8 @@ public:
             cairo_move_to(cr, 14.0, 22.0);
             cairo_show_text(cr, timeMessage );
 
-            XIRef<XMemory> dest = new XMemory;
             size_t outputSize = (cairoSrcWidth * 4) * cairoSrcHeight;
-            dest->ResizeData( outputSize );
+            XIRef<Packet> dest = new Packet( outputSize );
             memcpy( dest->Map(), cairoSrc, outputSize );
 
             cairo_destroy( cr );
@@ -167,7 +166,6 @@ void TranscodeExport::Create( XIRef<XMemory> output )
     XString recorderURI;
     while( _recorderURLS.GetNextURL( recorderURI ) )
     {
-        X_LOG_NOTICE("recorderURI = %s",recorderURI.c_str());
         XIRef<XMemory> responseBuffer = FRAME_STORE_CLIENT::FetchVideo( _config->GetRecorderIP(),
                                                                         _config->GetRecorderPort(),
                                                                         recorderURI );
@@ -224,7 +222,7 @@ void TranscodeExport::Create( XIRef<XMemory> output )
 
                 yuvToARGB->Transform( decoder.Get(), decoder.GetOutputWidth(), decoder.GetOutputHeight() );
 
-                XIRef<XMemory> rgb = yuvToARGB->Get();
+                XIRef<Packet> rgb = yuvToARGB->Get();
 
                 argbToYUV->Transform( ft->Process( rgb ), decoder.GetOutputWidth(), decoder.GetOutputHeight() );
 
