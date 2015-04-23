@@ -186,6 +186,10 @@ void* Request::EntryPoint()
                             speed = *getArgs.Find( "speed" );
                         else speed = "1.0";
 
+                        XString msg;
+                        if( getArgs.Find( "msg" ) )
+                            msg = *getArgs.Find( "msg" );
+
                         XRef<TranscodeExport> te = new TranscodeExport( _server.GetConfig(),
                                                                         dataSourceID,
                                                                         startTime,
@@ -195,6 +199,7 @@ void* Request::EntryPoint()
                                                                         bitRate.ToUInt32(),
                                                                         framerate.ToDouble(),
                                                                         fileName,
+                                                                        msg,
                                                                         speed.ToDouble() );
 
                         XIRef<XMemory> result = new XMemory;
@@ -378,6 +383,10 @@ void* Request::EntryPoint()
                         speed = *getArgs.Find( "speed" );
                     else speed = "1.0";
 
+                    XString msg;
+                    if( getArgs.Find( "msg" ) )
+                        msg = *getArgs.Find( "msg" );
+
                     XRef<TranscodeExport> te = new TranscodeExport( _server.GetConfig(),
                                                                     dataSourceID,
                                                                     startTime,
@@ -387,6 +396,7 @@ void* Request::EntryPoint()
                                                                     bitRate.ToUInt32(),
                                                                     framerate.ToDouble(),
                                                                     filePath,
+                                                                    msg,
                                                                     speed.ToDouble() );
 
                     te->Create( XIRef<XMemory>() );

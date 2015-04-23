@@ -29,6 +29,103 @@ using namespace AVKit;
 using namespace FRAME_STORE_CLIENT;
 using namespace std;
 
+class GreyBar
+{
+public:
+    GreyBar( const XSDK::XString& msg,
+             double duration,
+             uint16_t width,
+             uint16_t height,
+             int timeBaseNum,
+             int timeBaseDen ) :
+        _msg( msg ),
+        _duration( duration ),
+        _width( width ),
+        _height( height ),
+        _timeBaseNum( timeBaseNum ),
+        _timeBaseDen( timeBaseDen )
+    {
+    }
+
+    virtual ~GreyBar() throw()
+    {
+    }
+
+    XIRef<Packet> Process( XIRef<Packet> input )
+    {
+        size_t BAR_HEIGHT = 75;
+
+        if( (_duration <= 0) || _msg.empty() )
+            return input;
+
+        _duration -= (((double)_timeBaseNum) / ((double)_timeBaseDen));
+
+        cairo_surface_t* surface = NULL;
+        cairo_t* cr = NULL;
+
+        try
+        {
+            surface = cairo_image_surface_create( CAIRO_FORMAT_ARGB32, _width, _height );
+            cr = cairo_create( surface );
+
+            uint8_t* cairoSrc = cairo_image_surface_get_data( surface );
+            int cairoSrcWidth = cairo_image_surface_get_width( surface );
+            int cairoSrcHeight = cairo_image_surface_get_height( surface );
+            if( cairo_image_surface_get_stride( surface ) != (cairoSrcWidth * 4) )
+                X_THROW(("Unexpected cairo stride!"));
+
+            cairo_set_source_rgba( cr, 0.0, 0.0, 0.0, 1.0 );
+            cairo_rectangle( cr, 0.0, 0.0, cairoSrcWidth, cairoSrcHeight );
+            cairo_fill( cr );
+
+            memcpy( cairoSrc, input->Map(), input->GetDataSize() );
+
+            double alpha = (_duration<1.0)?_duration:1.0;
+
+            // draw grey bar...
+            cairo_set_source_rgba( cr, 0.3, 0.3, 0.3, alpha );
+            cairo_rectangle( cr, 0.0, cairoSrcHeight - (BAR_HEIGHT*1.25), cairoSrcWidth, BAR_HEIGHT );
+            cairo_fill( cr );
+
+            // draw some text...
+            cairo_select_font_face(cr, "helvetica", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+            cairo_set_font_size(cr, 30.0);
+            cairo_set_source_rgba(cr, 0.9, 0.9, 0.9, alpha);
+            cairo_move_to(cr, 40.0, (cairoSrcHeight - (BAR_HEIGHT*1.25)) + (BAR_HEIGHT*.60));
+
+            XString decodedMsg = _msg.URIDecode();
+            cairo_show_text(cr, decodedMsg.c_str());
+
+            size_t outputSize = (cairoSrcWidth * 4) * cairoSrcHeight;
+            XIRef<Packet> dest = new Packet( outputSize );
+            memcpy( dest->Map(), cairoSrc, outputSize );
+            dest->SetDataSize( outputSize );
+
+            cairo_destroy( cr );
+            cairo_surface_destroy( surface );
+
+            return dest;
+        }
+        catch(...)
+        {
+            if( cr )
+                cairo_destroy( cr );
+            if( surface )
+                cairo_surface_destroy( surface );
+
+            throw;
+        }
+    }
+
+private:
+    XSDK::XString _msg;
+    double _duration;
+    uint16_t _width;
+    uint16_t _height;
+    int _timeBaseNum;
+    int _timeBaseDen;
+};
+
 class FrameTime
 {
 public:
@@ -97,6 +194,7 @@ public:
             size_t outputSize = (cairoSrcWidth * 4) * cairoSrcHeight;
             XIRef<Packet> dest = new Packet( outputSize );
             memcpy( dest->Map(), cairoSrc, outputSize );
+            dest->SetDataSize( outputSize );
 
             cairo_destroy( cr );
             cairo_surface_destroy( surface );
@@ -132,6 +230,7 @@ TranscodeExport::TranscodeExport( XRef<Config> config,
                                   uint32_t bitRate,
                                   double frameRate,
                                   const XString& fileName,
+                                  const XString& msg,
                                   double speed ) :
     _config( config ),
     _dataSourceID( dataSourceID ),
@@ -142,6 +241,7 @@ TranscodeExport::TranscodeExport( XRef<Config> config,
     _bitRate( bitRate ),
     _frameRate( frameRate ),
     _fileName( fileName ),
+    _msg( msg ),
     _speed( speed ),
     _recorderURLS( dataSourceID, startTime, endTime, speed )
 {
@@ -162,6 +262,7 @@ void TranscodeExport::Create( XIRef<XMemory> output )
     XRef<H264Encoder> encoder;
     XRef<AVMuxer> muxer;
     XRef<FrameTime> ft;
+    XRef<GreyBar> gb;
 
     XString recorderURI;
     while( _recorderURLS.GetNextURL( recorderURI ) )
@@ -212,7 +313,6 @@ void TranscodeExport::Create( XIRef<XMemory> output )
                 if( argbToYUV.IsEmpty() )
                     argbToYUV = new ARGB24ToYUV420P;
 
-
                 if( ft.IsEmpty() )
                     ft = new FrameTime( XTime::FromISOExtString( _startTime ),
                                         decoder.GetOutputWidth(),
@@ -220,11 +320,31 @@ void TranscodeExport::Create( XIRef<XMemory> output )
                                         traversalNum,
                                         traversalDen );
 
+                if( gb.IsEmpty() )
+                    gb = new GreyBar( _msg,
+                                      5.0,
+                                      decoder.GetOutputWidth(),
+                                      decoder.GetOutputHeight(),
+                                      traversalNum,
+                                      traversalDen );
+
                 yuvToARGB->Transform( decoder.Get(), decoder.GetOutputWidth(), decoder.GetOutputHeight() );
 
                 XIRef<Packet> rgb = yuvToARGB->Get();
 
-                argbToYUV->Transform( ft->Process( rgb ), decoder.GetOutputWidth(), decoder.GetOutputHeight() );
+#if 1
+                XIRef<Packet> withTime = ft->Process( rgb );
+
+                XIRef<Packet> withGB = gb->Process( withTime );
+
+                argbToYUV->Transform( withGB, decoder.GetOutputWidth(), decoder.GetOutputHeight() );
+#else
+                XIRef<Packet> withGB = gb->Process( rgb );
+
+                XIRef<Packet> withTime = ft->Process( withGB );
+
+                argbToYUV->Transform( withTime, decoder.GetOutputWidth(), decoder.GetOutputHeight() );
+#endif
 
                 transcoder->EncodeYUV420PAndMux( *encoder, *muxer, argbToYUV->Get() );
             }

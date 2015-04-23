@@ -36,6 +36,7 @@ public:
                      uint32_t bitRate,
                      double frameRate,
                      const XSDK::XString& fileName,
+                     const XSDK::XString& msg,
                      double speed = 1.0 );
 
     virtual ~TranscodeExport() throw();
@@ -63,6 +64,7 @@ private:
     uint32_t _bitRate;
     double _frameRate;
     XSDK::XString _fileName;
+    XSDK::XString _msg;
     double _speed;
     FRAME_STORE_CLIENT::RecorderURLS _recorderURLS;
 };
