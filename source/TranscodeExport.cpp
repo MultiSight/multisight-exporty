@@ -332,19 +332,11 @@ void TranscodeExport::Create( XIRef<XMemory> output )
 
                 XIRef<Packet> rgb = yuvToARGB->Get();
 
-#if 1
                 XIRef<Packet> withTime = ft->Process( rgb );
 
                 XIRef<Packet> withGB = gb->Process( withTime );
 
                 argbToYUV->Transform( withGB, decoder.GetOutputWidth(), decoder.GetOutputHeight() );
-#else
-                XIRef<Packet> withGB = gb->Process( rgb );
-
-                XIRef<Packet> withTime = ft->Process( withGB );
-
-                argbToYUV->Transform( withTime, decoder.GetOutputWidth(), decoder.GetOutputHeight() );
-#endif
 
                 transcoder->EncodeYUV420PAndMux( *encoder, *muxer, argbToYUV->Get() );
             }
