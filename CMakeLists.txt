@@ -4,7 +4,15 @@ project(Exporty)
 include(common.cmake NO_POLICY_SCOPE)
 include(packaging.cmake NO_POLICY_SCOPE)
 
-set(SOURCES source/Main.cpp
+set(SOURCES include/Config.h
+            include/ExportyServer.h
+            include/LargeExport.h
+            include/Request.h
+            include/Thumbs.h
+            include/TranscodeExport.h
+            include/Transcody.h
+            include/TranscodyCacheItem.h
+            source/Main.cpp
             source/Config.cpp
             source/Request.cpp
             source/ExportyServer.cpp

@@ -482,10 +482,6 @@ void* Request::EntryPoint()
         if( !responseWritten )
             response.WriteResponse( _clientSocket );
 
-// Experimental!
-//        uint8_t ch;
-//        while( _clientSocket->Recv( &ch, 1, 5000 ) != 0 );
-
         _clientSocket->Close();
     }
     catch( exception& ex )
