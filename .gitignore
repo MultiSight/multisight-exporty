@@ -1,5 +1,6 @@
 # Ignore build directory
 build/
+.idea/
 
 # Ignore vim temporary files
 *~
