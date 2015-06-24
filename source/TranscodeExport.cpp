@@ -1,7 +1,7 @@
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 //
-// XSDK
+// Exporty
 // Copyright (c) 2015 Schneider Electric
 //
 // Use, modification, and distribution is subject to the Boost Software License,
@@ -20,8 +20,9 @@
 #include "AVKit/Options.h"
 #include "AVKit/Utils.h"
 #include <vector>
-
 #include <cairo.h>
+#include <pango/pangocairo.h>
+#include <gtk/gtk.h>
 
 using namespace EXPORTY;
 using namespace XSDK;
@@ -29,133 +30,48 @@ using namespace AVKit;
 using namespace FRAME_STORE_CLIENT;
 using namespace std;
 
-class GreyBar
+class ExportOverlay
 {
 public:
-    GreyBar( const XSDK::XString& msg,
-             double duration,
-             uint16_t width,
-             uint16_t height,
-             int timeBaseNum,
-             int timeBaseDen ) :
-        _msg( msg ),
-        _duration( duration ),
-        _width( width ),
-        _height( height ),
-        _timeBaseNum( timeBaseNum ),
-        _timeBaseDen( timeBaseDen )
-    {
-    }
-
-    virtual ~GreyBar() throw()
-    {
-    }
-
-    XIRef<Packet> Process( XIRef<Packet> input )
-    {
-        size_t BAR_HEIGHT = 75;
-
-        if( (_duration <= 0) || _msg.empty() )
-            return input;
-
-        _duration -= (((double)_timeBaseNum) / ((double)_timeBaseDen));
-
-        cairo_surface_t* surface = NULL;
-        cairo_t* cr = NULL;
-
-        try
-        {
-            surface = cairo_image_surface_create( CAIRO_FORMAT_ARGB32, _width, _height );
-            cr = cairo_create( surface );
-
-            uint8_t* cairoSrc = cairo_image_surface_get_data( surface );
-            int cairoSrcWidth = cairo_image_surface_get_width( surface );
-            int cairoSrcHeight = cairo_image_surface_get_height( surface );
-            if( cairo_image_surface_get_stride( surface ) != (cairoSrcWidth * 4) )
-                X_THROW(("Unexpected cairo stride!"));
-
-            cairo_set_source_rgba( cr, 0.0, 0.0, 0.0, 1.0 );
-            cairo_rectangle( cr, 0.0, 0.0, cairoSrcWidth, cairoSrcHeight );
-            cairo_fill( cr );
-
-            memcpy( cairoSrc, input->Map(), input->GetDataSize() );
-
-            double alpha = (_duration<1.0)?_duration:1.0;
-
-            // draw grey bar...
-            cairo_set_source_rgba( cr, 0.3, 0.3, 0.3, alpha );
-            cairo_rectangle( cr, 0.0, cairoSrcHeight - (BAR_HEIGHT*1.25), cairoSrcWidth, BAR_HEIGHT );
-            cairo_fill( cr );
-
-            // draw some text...
-            cairo_select_font_face(cr, "helvetica", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-            cairo_set_font_size(cr, 30.0);
-            cairo_set_source_rgba(cr, 0.9, 0.9, 0.9, alpha);
-            cairo_move_to(cr, 40.0, (cairoSrcHeight - (BAR_HEIGHT*1.25)) + (BAR_HEIGHT*.60));
-
-            XString decodedMsg = _msg.URIDecode();
-            cairo_show_text(cr, decodedMsg.c_str());
-
-            size_t outputSize = (cairoSrcWidth * 4) * cairoSrcHeight;
-            XIRef<Packet> dest = new Packet( outputSize );
-            memcpy( dest->Map(), cairoSrc, outputSize );
-            dest->SetDataSize( outputSize );
-
-            cairo_destroy( cr );
-            cairo_surface_destroy( surface );
-
-            return dest;
-        }
-        catch(...)
-        {
-            if( cr )
-                cairo_destroy( cr );
-            if( surface )
-                cairo_surface_destroy( surface );
-
-            throw;
-        }
-    }
-
-private:
-    XSDK::XString _msg;
-    double _duration;
-    uint16_t _width;
-    uint16_t _height;
-    int _timeBaseNum;
-    int _timeBaseDen;
-};
-
-class FrameTime
-{
-public:
-    FrameTime( XSDK::XTime clockTime,
+    ExportOverlay( const XSDK::XString& msg,
+               bool withTime,
+               XSDK::XTime clockTime,
+               OverlayHAlign hAlign,
+               OverlayVAlign vAlign,
                uint16_t width,
                uint16_t height,
                int timeBaseNum,
                int timeBaseDen ) :
+        _msg( msg ),
+        _decodedMsg(),
+        _withTime( withTime ),
         _clockTime( clockTime ),
+        _hAlign( hAlign ),
+        _vAlign( vAlign ),
         _width( width ),
         _height( height ),
-        _timeBaseNum( timeBaseNum ),
+        _timeBaseNum( timeBaseNum),
         _timeBaseDen( timeBaseDen ),
         _timePerFrame( ((double)timeBaseNum / timeBaseDen) )
     {
+        XIRef<XSDK::XMemory> decodedBuf = _msg.FromBase64();
+        _decodedMsg = XString( (const char*)decodedBuf->Map(), decodedBuf->GetDataSize() );
+        X_LOG_NOTICE("_decodedMsg = %s",_decodedMsg.c_str());
     }
 
-    virtual ~FrameTime() throw()
+    virtual ~ExportOverlay() throw()
     {
     }
 
     XIRef<Packet> Process( XIRef<Packet> input )
     {
+        _clockTime += XDuration( MSECS, (int)(_timePerFrame * 1000) );
+                
         cairo_surface_t* surface = NULL;
         cairo_t* cr = NULL;
 
         try
         {
-            _clockTime += XDuration( MSECS, (int)(_timePerFrame * 1000) );
-
             surface = cairo_image_surface_create( CAIRO_FORMAT_ARGB32, _width, _height );
             cr = cairo_create( surface );
 
@@ -164,37 +80,45 @@ public:
             int cairoSrcHeight = cairo_image_surface_get_height( surface );
             if( cairo_image_surface_get_stride( surface ) != (cairoSrcWidth * 4) )
                 X_THROW(("Unexpected cairo stride!"));
-            memcpy( cairoSrc, input->Map(), input->GetDataSize() );
-
-            cairo_set_source_rgba( cr, 0.5, 0.5, 0.5, 0.75 );
-            cairo_rectangle( cr, 10.0, 5.0, 185, 24 );
+                
+            cairo_set_source_rgba( cr, 0.0, 0.0, 0.0, 1.0 );
+            cairo_rectangle( cr, 0.0, 0.0, cairoSrcWidth, cairoSrcHeight );
             cairo_fill( cr );
 
-            int64_t milliTime = _clockTime.ToUnixTimeAsMSecs();
+            memcpy( cairoSrc, input->Map(), input->GetDataSize() );                
 
-            time_t ts = (time_t)(milliTime / 1000);
-            struct tm* bdt = localtime( &ts );
+            PangoLayout* layout = pango_cairo_create_layout( cr );
 
-            char timeMessage[1024];
-            memset( timeMessage, 0, 1024 );
-            strftime( timeMessage, 1024, "%m/%d/%G %I:%M:%S %p", bdt );
+            pango_layout_set_text( layout, _decodedMsg.c_str(), -1 );
+            PangoFontDescription* desc = pango_font_description_from_string( "Helvetica 11.0" );
+            pango_layout_set_font_description( layout, desc );
+            pango_font_description_free( desc );
+            
+            cairo_save( cr );
+            
+            PangoRectangle logicalRect;
+            pango_layout_get_pixel_extents( layout, NULL, &logicalRect );
+            
+            uint16_t y = (_vAlign==V_ALIGN_TOP) ? 10 : _height - 22;
+            
+            uint16_t timeX = 0;
+            uint16_t msgX = 0;
+            _GetXPositions( timeX, msgX, logicalRect.width );
 
-            cairo_select_font_face(cr, "helvetica", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-            cairo_set_font_size(cr, 15.5);
-            cairo_set_source_rgb(cr, 0.3, 0.3, 0.3);
-            cairo_move_to(cr, 15.0, 23.0);
-            cairo_show_text(cr, timeMessage );
+            if( !_msg.empty() )
+                _DrawMessage( cr, layout, msgX, y );
 
-            cairo_select_font_face(cr, "helvetica", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-            cairo_set_font_size(cr, 15.5);
-            cairo_set_source_rgb(cr, 0.9, 0.9, 0.9);
-            cairo_move_to(cr, 14.0, 22.0);
-            cairo_show_text(cr, timeMessage );
+            if( _withTime )
+                _DrawTime( cr, timeX, y );
+            
+            cairo_restore( cr );
+            
+            g_object_unref( layout );
 
             size_t outputSize = (cairoSrcWidth * 4) * cairoSrcHeight;
             XIRef<Packet> dest = new Packet( outputSize );
             memcpy( dest->Map(), cairoSrc, outputSize );
-            dest->SetDataSize( outputSize );
+            dest->SetDataSize( outputSize );            
 
             cairo_destroy( cr );
             cairo_surface_destroy( surface );
@@ -209,11 +133,75 @@ public:
                 cairo_surface_destroy( surface );
 
             throw;
-        }
+        }        
     }
 
 private:
+    void _GetXPositions( uint16_t& timeX, uint16_t& msgX, uint16_t messageWidth )
+    {
+        if( _hAlign == H_ALIGN_LEFT )
+        {
+            if( _withTime )
+                timeX = 10;
+            if( !_msg.empty() )
+            {
+                if( _withTime )
+                    msgX = 180;
+                else msgX = 10;
+            }
+        }
+        else // _hAlign == H_ALIGN_RIGHT
+        {
+            if( _withTime )
+                timeX = _width - 170;
+            if( !_msg.empty() )
+            {
+                if( _withTime )
+                    msgX = _width - 170 - 10 - messageWidth;
+                else msgX = _width - 10 - messageWidth;
+            }    
+        }        
+    }
+    
+    void _DrawMessage( cairo_t* cr, PangoLayout* layout, uint16_t msgX, uint16_t y )
+    {
+        cairo_set_source_rgba( cr, 1.0, 1.0, 1.0, 1.0 );
+        X_LOG_NOTICE("_DrawMessage - msgX = %f, y = %f",(double)msgX,(double)y);
+        cairo_move_to( cr, (double)msgX, (double)y );
+        pango_cairo_show_layout( cr, layout );
+    }
+
+    void _DrawTime( cairo_t* cr, uint16_t timeX, uint16_t y )
+    {
+        int64_t milliTime = _clockTime.ToUnixTimeAsMSecs();
+
+        time_t ts = (time_t)(milliTime / 1000);
+        struct tm* bdt = localtime( &ts );
+
+        char timeMessage[1024];
+        memset( timeMessage, 0, 1024 );
+        strftime( timeMessage, 1024, "%m/%d/%G %I:%M:%S %p", bdt );
+
+        PangoLayout* layout = pango_cairo_create_layout( cr );
+        pango_layout_set_text( layout, timeMessage, -1 );
+        PangoFontDescription* desc = pango_font_description_from_string( "Helvetica 11.0" );
+        pango_layout_set_font_description( layout, desc );
+        pango_font_description_free( desc );
+        
+        cairo_save( cr );        
+        cairo_move_to( cr, timeX, y );
+        pango_cairo_show_layout( cr, layout );
+        cairo_restore( cr );
+        
+        g_object_unref( layout );
+    }
+         
+    XSDK::XString _msg;
+    XSDK::XString _decodedMsg;
+    bool _withTime;
     XSDK::XTime _clockTime;
+    OverlayHAlign _hAlign;
+    OverlayVAlign _vAlign;
     uint16_t _width;
     uint16_t _height;
     int _timeBaseNum;
@@ -230,7 +218,10 @@ TranscodeExport::TranscodeExport( XRef<Config> config,
                                   uint32_t bitRate,
                                   double frameRate,
                                   const XString& fileName,
+                                  OverlayHAlign hAlign,
+                                  OverlayVAlign vAlign,                                  
                                   const XString& msg,
+                                  bool withTime,
                                   double speed ) :
     _config( config ),
     _dataSourceID( dataSourceID ),
@@ -241,7 +232,10 @@ TranscodeExport::TranscodeExport( XRef<Config> config,
     _bitRate( bitRate ),
     _frameRate( frameRate ),
     _fileName( fileName ),
+    _hAlign( hAlign ),
+    _vAlign( vAlign ),
     _msg( msg ),
+    _withTime( withTime ),    
     _speed( speed ),
     _recorderURLS( dataSourceID, startTime, endTime, speed )
 {
@@ -261,8 +255,7 @@ void TranscodeExport::Create( XIRef<XMemory> output )
     XRef<H264Transcoder> transcoder;
     XRef<H264Encoder> encoder;
     XRef<AVMuxer> muxer;
-    XRef<FrameTime> ft;
-    XRef<GreyBar> gb;
+    XRef<ExportOverlay> ov;
 
     XString recorderURI;
     while( _recorderURLS.GetNextURL( recorderURI ) )
@@ -313,30 +306,24 @@ void TranscodeExport::Create( XIRef<XMemory> output )
                 if( argbToYUV.IsEmpty() )
                     argbToYUV = new ARGB24ToYUV420P;
 
-                if( ft.IsEmpty() )
-                    ft = new FrameTime( XTime::FromISOExtString( _startTime ),
-                                        decoder.GetOutputWidth(),
-                                        decoder.GetOutputHeight(),
-                                        traversalNum,
-                                        traversalDen );
-
-                if( gb.IsEmpty() )
-                    gb = new GreyBar( _msg,
-                                      5.0,
-                                      decoder.GetOutputWidth(),
-                                      decoder.GetOutputHeight(),
-                                      traversalNum,
-                                      traversalDen );
+                if( ov.IsEmpty() )
+                    ov = new ExportOverlay( _msg,
+                                            _withTime,
+                                            XTime::FromISOExtString( _startTime ),
+                                            _hAlign,
+                                            _vAlign,
+                                            decoder.GetOutputWidth(),
+                                            decoder.GetOutputHeight(),
+                                            traversalNum,
+                                            traversalDen );
 
                 yuvToARGB->Transform( decoder.Get(), decoder.GetOutputWidth(), decoder.GetOutputHeight() );
 
                 XIRef<Packet> rgb = yuvToARGB->Get();
 
-                XIRef<Packet> withTime = ft->Process( rgb );
-
-                XIRef<Packet> withGB = gb->Process( withTime );
-
-                argbToYUV->Transform( withGB, decoder.GetOutputWidth(), decoder.GetOutputHeight() );
+                XIRef<Packet> withOverlay = ov->Process( rgb );
+                
+                argbToYUV->Transform( withOverlay, decoder.GetOutputWidth(), decoder.GetOutputHeight() );
 
                 transcoder->EncodeYUV420PAndMux( *encoder, *muxer, argbToYUV->Get() );
             }

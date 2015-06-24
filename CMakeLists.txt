@@ -21,8 +21,16 @@ set(SOURCES include/Config.h
             source/Transcody.cpp
             source/TranscodeExport.cpp)
 
-set(WINDOWS_LIBS XSDK ws2_32 Webby MediaParser FrameStoreClient AVKit)
-set(LINUX_LIBS XSDK Webby MediaParser FrameStoreClient AVKit VAKit cairo)
+include_directories(/usr/include/cairo)
+include_directories(/usr/include/gtk-3.0)
+include_directories(/usr/include/cairo)
+include_directories(/usr/include/pango-1.0)
+include_directories(/usr/include/atk-1.0)
+include_directories(/usr/include/gdk-pixbuf-2.0)
+include_directories(/usr/include/glib-2.0)
+include_directories(/usr/lib64/glib-2.0/include)
+
+set(LINUX_LIBS XSDK Webby MediaParser FrameStoreClient AVKit VAKit pangocairo-1.0 pango-1.0 cairo gobject-2.0)
 
 add_definitions(-D__STDC_CONSTANT_MACROS)
 

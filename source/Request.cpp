@@ -190,6 +190,30 @@ void* Request::EntryPoint()
                         if( getArgs.Find( "msg" ) )
                             msg = *getArgs.Find( "msg" );
 
+                        bool withTime = true;
+                        if( getArgs.Find( "with_time" ) )
+                        {
+                            XString withTimeString = *getArgs.Find( "with_time" );
+                            if( withTimeString.ToLower() == "false" )
+                                withTime = false;
+                        }
+                        
+                        OverlayHAlign hAlign = H_ALIGN_LEFT;
+                        if( getArgs.Find( "h_align" ) )
+                        {
+                            XString hAlignString = *getArgs.Find( "h_align" );
+                            if( hAlignString.ToLower() == "right" )
+                                hAlign = H_ALIGN_RIGHT;
+                        }
+                        
+                        OverlayVAlign vAlign = V_ALIGN_TOP;
+                        if( getArgs.Find( "v_align" ) )
+                        {
+                            XString vAlignString = *getArgs.Find( "v_align" );
+                            if( vAlignString.ToLower() == "bottom" )
+                                vAlign = V_ALIGN_BOTTOM;
+                        }
+                            
                         XRef<TranscodeExport> te = new TranscodeExport( _server.GetConfig(),
                                                                         dataSourceID,
                                                                         startTime,
@@ -199,7 +223,10 @@ void* Request::EntryPoint()
                                                                         bitRate.ToUInt32(),
                                                                         framerate.ToDouble(),
                                                                         fileName,
+                                                                        hAlign,
+                                                                        vAlign,
                                                                         msg,
+                                                                        withTime,
                                                                         speed.ToDouble() );
 
                         XIRef<XMemory> result = new XMemory;
@@ -386,6 +413,30 @@ void* Request::EntryPoint()
                     XString msg;
                     if( getArgs.Find( "msg" ) )
                         msg = *getArgs.Find( "msg" );
+                        
+                    bool withTime = true;
+                    if( getArgs.Find( "with_time" ) )
+                    {
+                        XString withTimeString = *getArgs.Find( "with_time" );
+                        if( withTimeString.ToLower() == "false" )
+                            withTime = false;
+                    }
+                        
+                    OverlayHAlign hAlign = H_ALIGN_LEFT;
+                    if( getArgs.Find( "h_align" ) )
+                    {
+                        XString hAlignString = *getArgs.Find( "h_align" );
+                        if( hAlignString.ToLower() == "right" )
+                            hAlign = H_ALIGN_RIGHT;
+                    }
+                        
+                    OverlayVAlign vAlign = V_ALIGN_TOP;
+                    if( getArgs.Find( "v_align" ) )
+                    {
+                        XString vAlignString = *getArgs.Find( "v_align" );
+                        if( vAlignString.ToLower() == "bottom" )
+                            vAlign = V_ALIGN_BOTTOM;
+                    }
 
                     XRef<TranscodeExport> te = new TranscodeExport( _server.GetConfig(),
                                                                     dataSourceID,
@@ -396,7 +447,10 @@ void* Request::EntryPoint()
                                                                     bitRate.ToUInt32(),
                                                                     framerate.ToDouble(),
                                                                     filePath,
+                                                                    hAlign,
+                                                                    vAlign,
                                                                     msg,
+                                                                    withTime,
                                                                     speed.ToDouble() );
 
                     te->Create( XIRef<XMemory>() );

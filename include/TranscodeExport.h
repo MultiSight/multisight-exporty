@@ -23,6 +23,18 @@
 
 namespace EXPORTY
 {
+    
+enum OverlayHAlign
+{
+    H_ALIGN_LEFT,
+    H_ALIGN_RIGHT
+};
+
+enum OverlayVAlign
+{
+    V_ALIGN_TOP,
+    V_ALIGN_BOTTOM
+};    
 
 class TranscodeExport
 {
@@ -36,7 +48,10 @@ public:
                      uint32_t bitRate,
                      double frameRate,
                      const XSDK::XString& fileName,
+                     OverlayHAlign hAlign,
+                     OverlayVAlign vAlign,
                      const XSDK::XString& msg,
+                     bool withTime,                     
                      double speed = 1.0 );
 
     virtual ~TranscodeExport() throw();
@@ -64,7 +79,10 @@ private:
     uint32_t _bitRate;
     double _frameRate;
     XSDK::XString _fileName;
+    OverlayHAlign _hAlign;
+    OverlayVAlign _vAlign;
     XSDK::XString _msg;
+    bool _withTime;    
     double _speed;
     FRAME_STORE_CLIENT::RecorderURLS _recorderURLS;
 };
