@@ -56,7 +56,6 @@ public:
     {
         XIRef<XSDK::XMemory> decodedBuf = _msg.FromBase64();
         _decodedMsg = XString( (const char*)decodedBuf->Map(), decodedBuf->GetDataSize() );
-        X_LOG_NOTICE("_decodedMsg = %s",_decodedMsg.c_str());
     }
 
     virtual ~ExportOverlay() throw()
@@ -166,7 +165,6 @@ private:
     void _DrawMessage( cairo_t* cr, PangoLayout* layout, uint16_t msgX, uint16_t y )
     {
         cairo_set_source_rgba( cr, 1.0, 1.0, 1.0, 1.0 );
-        X_LOG_NOTICE("_DrawMessage - msgX = %f, y = %f",(double)msgX,(double)y);
         cairo_move_to( cr, (double)msgX, (double)y );
         pango_cairo_show_layout( cr, layout );
     }
