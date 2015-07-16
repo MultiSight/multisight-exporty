@@ -27,7 +27,7 @@ using namespace std;
 
 static const uint32_t MEDIA_CHUNK_SIZE = 16384;
 
-static const XString DEFAULT_ENCODE_BIT_RATE = "100000";
+static const XString DEFAULT_ENCODE_BIT_RATE = "0";
 
 Request::Request( ExportyServer& server ) :
     _server( server ),
@@ -173,7 +173,7 @@ void* Request::EntryPoint()
                     XString framerate;
                     if( getArgs.Find( "framerate" ) )
                         framerate = *getArgs.Find( "framerate" );
-                    else framerate = "15";
+                    else framerate = "0.0";
 
                     // a GET on /transcoded_media with a file_name arguments means that we should do a transcoded
                     // export and return it with chunked transfer encoding.
@@ -398,7 +398,7 @@ void* Request::EntryPoint()
                     XString framerate;
                     if( getArgs.Find( "framerate" ) )
                         framerate = *getArgs.Find( "framerate" );
-                    else framerate = "15";
+                    else framerate = "0.0";
 
                     XString filePath;
                     if( getArgs.Find( "file_path" ) )

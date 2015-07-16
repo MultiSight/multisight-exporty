@@ -23,7 +23,7 @@
 
 namespace EXPORTY
 {
-    
+
 enum OverlayHAlign
 {
     H_ALIGN_LEFT,
@@ -34,7 +34,7 @@ enum OverlayVAlign
 {
     V_ALIGN_TOP,
     V_ALIGN_BOTTOM
-};    
+};
 
 class TranscodeExport
 {
@@ -51,7 +51,7 @@ public:
                      OverlayHAlign hAlign,
                      OverlayVAlign vAlign,
                      const XSDK::XString& msg,
-                     bool withTime,                     
+                     bool withTime,
                      double speed = 1.0 );
 
     virtual ~TranscodeExport() throw();
@@ -82,7 +82,7 @@ private:
     OverlayHAlign _hAlign;
     OverlayVAlign _vAlign;
     XSDK::XString _msg;
-    bool _withTime;    
+    bool _withTime;
     double _speed;
     FRAME_STORE_CLIENT::RecorderURLS _recorderURLS;
 };

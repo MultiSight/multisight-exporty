@@ -23,6 +23,7 @@
 #include <cairo.h>
 #include <pango/pangocairo.h>
 #include <gtk/gtk.h>
+#include <cmath>
 
 using namespace EXPORTY;
 using namespace XSDK;
@@ -263,6 +264,17 @@ void TranscodeExport::Create( XIRef<XMemory> output )
         ResultParser resultParser;
 
         resultParser.Parse( responseBuffer );
+
+        if( _bitRate == 0 || _frameRate == 0.0 )
+        {
+            FRAME_STORE_CLIENT::ResultStatistics stats = resultParser.GetStatistics();
+
+            if( _bitRate == 0 )
+                _bitRate = stats.averageBitRate;
+
+            if( _frameRate == 0.0 )
+                _frameRate = floor(stats.frameRate);
+        }
 
         int outputTimeBaseNum = 0;
         int outputTimeBaseDen = 0;
