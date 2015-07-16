@@ -54,8 +54,11 @@ public:
         _timeBaseDen( timeBaseDen ),
         _timePerFrame( ((double)timeBaseNum / timeBaseDen) )
     {
-        XIRef<XSDK::XMemory> decodedBuf = _msg.FromBase64();
-        _decodedMsg = XString( (const char*)decodedBuf->Map(), decodedBuf->GetDataSize() );
+        if( !_msg.empty() )
+        {
+            XIRef<XSDK::XMemory> decodedBuf = _msg.FromBase64();
+            _decodedMsg = XString( (const char*)decodedBuf->Map(), decodedBuf->GetDataSize() );
+        }
     }
 
     virtual ~ExportOverlay() throw()
@@ -65,7 +68,7 @@ public:
     XIRef<Packet> Process( XIRef<Packet> input )
     {
         _clockTime += XDuration( MSECS, (int)(_timePerFrame * 1000) );
-                
+
         cairo_surface_t* surface = NULL;
         cairo_t* cr = NULL;
 
@@ -79,12 +82,12 @@ public:
             int cairoSrcHeight = cairo_image_surface_get_height( surface );
             if( cairo_image_surface_get_stride( surface ) != (cairoSrcWidth * 4) )
                 X_THROW(("Unexpected cairo stride!"));
-                
+
             cairo_set_source_rgba( cr, 0.0, 0.0, 0.0, 1.0 );
             cairo_rectangle( cr, 0.0, 0.0, cairoSrcWidth, cairoSrcHeight );
             cairo_fill( cr );
 
-            memcpy( cairoSrc, input->Map(), input->GetDataSize() );                
+            memcpy( cairoSrc, input->Map(), input->GetDataSize() );
 
             PangoLayout* layout = pango_cairo_create_layout( cr );
 
@@ -92,32 +95,30 @@ public:
             PangoFontDescription* desc = pango_font_description_from_string( "Helvetica 11.0" );
             pango_layout_set_font_description( layout, desc );
             pango_font_description_free( desc );
-            
-            cairo_save( cr );
-            
+
             PangoRectangle logicalRect;
             pango_layout_get_pixel_extents( layout, NULL, &logicalRect );
-            
+
             uint16_t y = (_vAlign==V_ALIGN_TOP) ? 10 : _height - 22;
-            
+
             uint16_t timeX = 0;
             uint16_t msgX = 0;
             _GetXPositions( timeX, msgX, logicalRect.width );
 
-            if( !_msg.empty() )
+            cairo_set_source_rgba( cr, 1.0, 1.0, 1.0, 1.0 );
+
+            if( !_decodedMsg.empty() )
                 _DrawMessage( cr, layout, msgX, y );
 
             if( _withTime )
                 _DrawTime( cr, timeX, y );
-            
-            cairo_restore( cr );
-            
+
             g_object_unref( layout );
 
             size_t outputSize = (cairoSrcWidth * 4) * cairoSrcHeight;
             XIRef<Packet> dest = new Packet( outputSize );
             memcpy( dest->Map(), cairoSrc, outputSize );
-            dest->SetDataSize( outputSize );            
+            dest->SetDataSize( outputSize );
 
             cairo_destroy( cr );
             cairo_surface_destroy( surface );
@@ -132,7 +133,7 @@ public:
                 cairo_surface_destroy( surface );
 
             throw;
-        }        
+        }
     }
 
 private:
@@ -158,13 +159,12 @@ private:
                 if( _withTime )
                     msgX = _width - 170 - 10 - messageWidth;
                 else msgX = _width - 10 - messageWidth;
-            }    
-        }        
+            }
+        }
     }
-    
+
     void _DrawMessage( cairo_t* cr, PangoLayout* layout, uint16_t msgX, uint16_t y )
     {
-        cairo_set_source_rgba( cr, 1.0, 1.0, 1.0, 1.0 );
         cairo_move_to( cr, (double)msgX, (double)y );
         pango_cairo_show_layout( cr, layout );
     }
@@ -185,15 +185,13 @@ private:
         PangoFontDescription* desc = pango_font_description_from_string( "Helvetica 11.0" );
         pango_layout_set_font_description( layout, desc );
         pango_font_description_free( desc );
-        
-        cairo_save( cr );        
+
         cairo_move_to( cr, timeX, y );
         pango_cairo_show_layout( cr, layout );
-        cairo_restore( cr );
-        
+
         g_object_unref( layout );
     }
-         
+
     XSDK::XString _msg;
     XSDK::XString _decodedMsg;
     bool _withTime;
@@ -217,7 +215,7 @@ TranscodeExport::TranscodeExport( XRef<Config> config,
                                   double frameRate,
                                   const XString& fileName,
                                   OverlayHAlign hAlign,
-                                  OverlayVAlign vAlign,                                  
+                                  OverlayVAlign vAlign,
                                   const XString& msg,
                                   bool withTime,
                                   double speed ) :
@@ -233,7 +231,7 @@ TranscodeExport::TranscodeExport( XRef<Config> config,
     _hAlign( hAlign ),
     _vAlign( vAlign ),
     _msg( msg ),
-    _withTime( withTime ),    
+    _withTime( withTime ),
     _speed( speed ),
     _recorderURLS( dataSourceID, startTime, endTime, speed )
 {
@@ -320,7 +318,7 @@ void TranscodeExport::Create( XIRef<XMemory> output )
                 XIRef<Packet> rgb = yuvToARGB->Get();
 
                 XIRef<Packet> withOverlay = ov->Process( rgb );
-                
+
                 argbToYUV->Transform( withOverlay, decoder.GetOutputWidth(), decoder.GetOutputHeight() );
 
                 transcoder->EncodeYUV420PAndMux( *encoder, *muxer, argbToYUV->Get() );
