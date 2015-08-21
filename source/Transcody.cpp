@@ -50,6 +50,7 @@ Transcody::Transcody( XRef<Config> config,
                       const XString& endTime,
                       const XString& width,
                       const XString& height,
+                      const XString& speed,
                       const XString& bitRate,
                       const XString& initialQP,
                       const XString& framerate,
@@ -66,6 +67,7 @@ Transcody::Transcody( XRef<Config> config,
     _endTime( endTime ),
     _width( width.ToUInt16() ),
     _height( height.ToUInt16() ),
+    _speed( speed.ToDouble() ),
     _bitRate( bitRate.ToUInt32() ),
     _initialQP( initialQP.ToInt() ),
     _framerate( framerate.ToDouble() ),
@@ -99,6 +101,7 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
 
     X_LOG_NOTICE( "==>HLS Transcody::Get @ %s, bitrate = %u", transcodeStart.ToISOExtString().c_str(), _bitRate);
 
+    // This keeps us from getting into trouble by requesting video that hasn't been recorded yet.
     _SleepTillThePast();
 
     XString adjustedEnd = (XTime::FromISOExtString( _endTime ) + XDuration( SECONDS, 2 )).ToISOExtString();
@@ -136,7 +139,7 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
     XRef<Encoder> encoder = cacheItem->encoder;
     XRef<AVMuxer> muxer = cacheItem->muxer;
 
-    if( _bitRate >= transcodeThresholdBitRate )
+    if( (_bitRate >= transcodeThresholdBitRate) && (_speed == 1.0) )
     {
         // If the requested bitrate is greater than the bitrate of the source, then transcoding it makes no sense...
         // So, just containerize it as a ts and return it.
@@ -175,7 +178,7 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
     }
     else
     {
-        double outputFramesPerInputFrame = (_framerate / sourceFramerate);
+        double outputFramesPerInputFrame = ((_framerate*_speed) / sourceFramerate);
 
         bool doneDecoding = false;
         bool doneEncoding = false;
@@ -339,6 +342,7 @@ void Transcody::_PopulateSessionCache()
 {
     XRef<TranscodyCacheItem> cacheItem = new TranscodyCacheItem;
 
+    // populate cache item decoder...
 #ifdef WIN32
     cacheItem->decoder = new H264Decoder( GetFastH264DecoderOptions() );
 #else
@@ -347,6 +351,7 @@ void Transcody::_PopulateSessionCache()
     else cacheItem->decoder = new H264Decoder( GetFastH264DecoderOptions() );
 #endif
 
+    // this variable controls our transcoding.
     cacheItem->framerateStep = 0.0;
 
     _cache->Put( _sessionID, cacheItem );

@@ -35,6 +35,7 @@ public:
                const XSDK::XString& endTime,
                const XSDK::XString& width,
                const XSDK::XString& height,
+               const XSDK::XString& speed,
                const XSDK::XString& bitRate,
                const XSDK::XString& initialQP,
                const XSDK::XString& framerate,
@@ -83,6 +84,8 @@ private:
 
     uint16_t _width;
     uint16_t _height;
+    
+    double _speed;
 
     uint32_t _bitRate;
     int _initialQP;

@@ -160,6 +160,11 @@ void* Request::EntryPoint()
                         height = *getArgs.Find( "height" );
                     else height = "720";
 
+                    XString speed;
+                    if( getArgs.Find( "speed" ) )
+                        speed = *getArgs.Find( "speed" );
+                    else speed = "1.0";
+
                     XString bitRate;
                     if( getArgs.Find( "bit_rate" ) )
                         bitRate = *getArgs.Find( "bit_rate" );
@@ -173,18 +178,13 @@ void* Request::EntryPoint()
                     XString framerate;
                     if( getArgs.Find( "framerate" ) )
                         framerate = *getArgs.Find( "framerate" );
-                    else framerate = "0.0";
+                    else framerate = "15.0";
 
                     // a GET on /transcoded_media with a file_name arguments means that we should do a transcoded
                     // export and return it with chunked transfer encoding.
                     if( getArgs.Find( "file_name" ) )
                     {
                         XString fileName = getArgs["file_name"];
-
-                        XString speed;
-                        if( getArgs.Find( "speed" ) )
-                            speed = *getArgs.Find( "speed" );
-                        else speed = "1.0";
 
                         XString msg;
                         if( getArgs.Find( "msg" ) )
@@ -281,6 +281,7 @@ void* Request::EntryPoint()
                                                                     endTime,
                                                                     width,
                                                                     height,
+                                                                    speed,
                                                                     bitRate,
                                                                     initialQP,
                                                                     framerate,
