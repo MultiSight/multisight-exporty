@@ -178,7 +178,7 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
     }
     else
     {
-        double outputFramesPerInputFrame = ((_framerate*_speed) / sourceFramerate);
+        double outputFramesPerInputFrame = (_framerate / (sourceFramerate * _speed));
 
         bool doneDecoding = false;
         bool doneEncoding = false;
