@@ -110,7 +110,9 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
                                                                     _config->GetRecorderPort(),
                                                                     _dataSourceID,
                                                                     _startTime,
-                                                                    adjustedEnd );
+                                                                    adjustedEnd,
+                                                                    true,
+                                                                    (_speed > 1.0) ? true : false );
 
     int numFramesToExport =
         _GetNumFramesToExport( responseBuffer,
