@@ -56,8 +56,6 @@ private:
 
     int _GetNumFramesToExport( XIRef<XSDK::XMemory> result, int64_t requestedDuration ) const;
 
-    double _GetFramerate( const XIRef<FRAME_STORE_CLIENT::ResultParser> resultParser ) const;
-
     void _PopulateSessionCache();
 
     void _FinishConfig( XRef<AVKit::H264Decoder> decoder,

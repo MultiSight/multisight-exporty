@@ -266,7 +266,7 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
 void Transcody::_SleepTillThePast() const
 {
     XTime end = XTime::FromISOExtString( _endTime );
-    XTime livest = Clock::currTime() - XDuration( SECONDS, 1 );
+    XTime livest = Clock::currTime() - XDuration( SECONDS, 2 );
 
     if( end > livest )
     {
@@ -317,27 +317,6 @@ int Transcody::_GetNumFramesToExport( XIRef<XMemory> result, int64_t requestedDu
     }
 
     X_THROW(("Stepped over entire result without accumulating enough duration and finding a key!"));
-}
-
-double Transcody::_GetFramerate( const XIRef<FRAME_STORE_CLIENT::ResultParser> resultParser ) const
-{
-    XIRef<XMemory> sps = resultParser->GetSPS();
-    XIRef<XMemory> pps = resultParser->GetPPS();
-
-    MEDIA_PARSER::H264Info h264Info;
-
-    if( !MEDIA_PARSER::MediaParser::GetMediaInfo( sps->Map(), sps->GetDataSize(), h264Info ) )
-        X_STHROW( HTTP500Exception, ( "Unable to parse provided SPS. Exporty cannot continue." ));
-
-    MEDIA_PARSER::MediaInfo* mediaInfo = &h264Info;
-
-    XString SDPFrameRate = resultParser->GetSDPFrameRate();
-
-    if( ((double)mediaInfo->GetFrameRate() == 0.0) &&
-        SDPFrameRate.ToDouble() == 0.0 )
-        X_THROW(("FrameRate Unknown: mediaparser failed to parse, and not included in source SDP."));
-
-    return (SDPFrameRate.length() > 0) ? SDPFrameRate.ToDouble() : (double)mediaInfo->GetFrameRate();
 }
 
 void Transcody::_PopulateSessionCache()

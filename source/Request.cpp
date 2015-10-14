@@ -197,7 +197,7 @@ void* Request::EntryPoint()
                             if( withTimeString.ToLower() == "false" )
                                 withTime = false;
                         }
-                        
+
                         OverlayHAlign hAlign = H_ALIGN_LEFT;
                         if( getArgs.Find( "h_align" ) )
                         {
@@ -205,7 +205,7 @@ void* Request::EntryPoint()
                             if( hAlignString.ToLower() == "right" )
                                 hAlign = H_ALIGN_RIGHT;
                         }
-                        
+
                         OverlayVAlign vAlign = V_ALIGN_TOP;
                         if( getArgs.Find( "v_align" ) )
                         {
@@ -213,7 +213,7 @@ void* Request::EntryPoint()
                             if( vAlignString.ToLower() == "bottom" )
                                 vAlign = V_ALIGN_BOTTOM;
                         }
-                            
+
                         XRef<TranscodeExport> te = new TranscodeExport( _server.GetConfig(),
                                                                         dataSourceID,
                                                                         startTime,
@@ -414,7 +414,7 @@ void* Request::EntryPoint()
                     XString msg;
                     if( getArgs.Find( "msg" ) )
                         msg = *getArgs.Find( "msg" );
-                        
+
                     bool withTime = true;
                     if( getArgs.Find( "with_time" ) )
                     {
@@ -422,7 +422,7 @@ void* Request::EntryPoint()
                         if( withTimeString.ToLower() == "false" )
                             withTime = false;
                     }
-                        
+
                     OverlayHAlign hAlign = H_ALIGN_LEFT;
                     if( getArgs.Find( "h_align" ) )
                     {
@@ -430,7 +430,7 @@ void* Request::EntryPoint()
                         if( hAlignString.ToLower() == "right" )
                             hAlign = H_ALIGN_RIGHT;
                     }
-                        
+
                     OverlayVAlign vAlign = V_ALIGN_TOP;
                     if( getArgs.Find( "v_align" ) )
                     {
