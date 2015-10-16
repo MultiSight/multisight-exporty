@@ -101,9 +101,6 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
 
     X_LOG_NOTICE( "==>HLS Transcody::Get @ %s, bitrate = %u", transcodeStart.ToISOExtString().c_str(), _bitRate);
 
-    // This keeps us from getting into trouble by requesting video that hasn't been recorded yet.
-    _SleepTillThePast();
-
     XString adjustedEnd = (XTime::FromISOExtString( _endTime ) + XDuration( SECONDS, 2 )).ToISOExtString();
 
     XIRef<XMemory> responseBuffer = FRAME_STORE_CLIENT::FetchVideo( _config->GetRecorderIP(),
@@ -260,13 +257,16 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
 
     _cache->Put( _sessionID, cacheItem );
 
+    // This keeps us from getting into trouble by requesting video that hasn't been recorded yet.
+    _SleepTillThePast();
+
     return resultBuffer;
 }
 
 void Transcody::_SleepTillThePast() const
 {
     XTime end = XTime::FromISOExtString( _endTime );
-    XTime livest = Clock::currTime() - XDuration( SECONDS, 2 );
+    XTime livest = Clock::currTime() - XDuration( SECONDS, 5 );
 
     if( end > livest )
     {
