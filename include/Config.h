@@ -31,6 +31,8 @@ public:
     X_API bool HasDRIEncoder() const;
     X_API bool HasDRIDecoder() const;
 
+    X_API int GetTranscodeSleep() const;
+
 private:
     Config( const Config& obj );
     Config& operator = ( const Config& obj );
@@ -40,6 +42,7 @@ private:
     XSDK::XString _logFilePath;
     bool _hasDRIEncoding;
     bool _hasDRIDecoding;
+    int _transcodeSleep;
 };
 
 }

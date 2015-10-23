@@ -87,6 +87,11 @@ Transcody::~Transcody() throw()
 
 XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
 {
+    int transcodeSleep = _config->GetTranscodeSleep();
+
+    if( transcodeSleep > 0 )
+        usleep( transcodeSleep * 1000 );
+
     if( !_cache->IsCached( _sessionID ) )
         _PopulateSessionCache();
 

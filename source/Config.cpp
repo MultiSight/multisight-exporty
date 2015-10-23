@@ -33,7 +33,8 @@ Config::Config() :
     _recorderPort( 10013 ),
     _logFilePath( "" ),
     _hasDRIEncoding( false ),
-    _hasDRIDecoding( false )
+    _hasDRIDecoding( false ),
+    _transcodeSleep( 0 )
 {
     if( XPath::Exists( "config.xml" ) )
     {
@@ -63,6 +64,14 @@ Config::Config() :
             if( !searchResults.empty() )
                 _logFilePath = searchResults.front()->GetData();
         }
+
+        {
+            list<XIRef<XDomParserNode> > searchResults = domParser->SearchForAll( "transcode_sleep", rootNode );
+
+            if( !searchResults.empty() )
+                _transcodeSleep = searchResults.front()->GetData().ToInt();
+        }
+
     }
 
     try
@@ -115,4 +124,9 @@ bool Config::HasDRIEncoder() const
 bool Config::HasDRIDecoder() const
 {
     return _hasDRIDecoding;
+}
+
+int Config::GetTranscodeSleep() const
+{
+    return _transcodeSleep;
 }
