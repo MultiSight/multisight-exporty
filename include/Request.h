@@ -31,12 +31,11 @@ public:
 
     X_API virtual void* EntryPoint();
 
-    X_API bool IsDone();
+    X_API bool IsDone() const;
 
     X_API inline XRef<XSDK::XSocket>& GetClientSocket() { return _clientSocket; }
 
 private:
-
     void _ChunkTransfer( XRef<XSDK::XSocket> sok,
                          WEBBY::ServerSideResponse& response,
                          XIRef<XSDK::XMemory> responseBody,

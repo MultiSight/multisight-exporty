@@ -33,9 +33,9 @@ public:
 
     X_API void Shutdown();
 
-    X_API XRef<Config> GetConfig();
+    X_API XRef<Config> GetConfig() const;
 
-    X_API XRef<XSDK::XTSCache<XRef<TranscodyCacheItem> > > GetTranscodyCache();
+    X_API XRef<XSDK::XTSCache<XRef<TranscodyCacheItem> > > GetTranscodyCache() const;
 
 private:
     ExportyServer( const ExportyServer& obj );

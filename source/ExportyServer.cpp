@@ -86,12 +86,12 @@ void ExportyServer::Shutdown()
     _running = false;
 }
 
-XRef<Config> ExportyServer::GetConfig()
+XRef<Config> ExportyServer::GetConfig() const
 {
     return _config;
 }
 
-XRef<XTSCache<XRef<TranscodyCacheItem> > > ExportyServer::GetTranscodyCache()
+XRef<XTSCache<XRef<TranscodyCacheItem> > > ExportyServer::GetTranscodyCache() const
 {
     return _transcodyCache;
 }

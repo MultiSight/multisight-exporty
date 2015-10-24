@@ -551,7 +551,7 @@ void* Request::EntryPoint()
     return NULL;
 }
 
-bool Request::IsDone()
+bool Request::IsDone() const
 {
     if( _done )
     {
