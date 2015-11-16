@@ -186,6 +186,7 @@ int main( int argc, char* argv[] )
 {
     XLog::InstallLogLevelSigHandler();
     XLog::SetLogLevel( LOGLEVEL_INFO );
+    XLog::InstallTerminate();
 
     Locky::RegisterFFMPEG();
 
