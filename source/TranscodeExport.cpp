@@ -265,41 +265,48 @@ void TranscodeExport::Create( XIRef<XMemory> output )
 
         resultParser.Parse( responseBuffer );
 
-        if( _bitRate == 0 || _frameRate == 0.0 )
-        {
-            FRAME_STORE_CLIENT::ResultStatistics stats = resultParser.GetStatistics();
+        FRAME_STORE_CLIENT::ResultStatistics stats = resultParser.GetStatistics();
 
-            if( _bitRate == 0 )
-                _bitRate = stats.averageBitRate;
+        // If we are not provided with a bit rate or a frame rate, we use the sources values.
+        if( _bitRate == 0 )
+            _bitRate = stats.averageBitRate;
 
-            if( _frameRate == 0.0 )
-                _frameRate = floor(stats.frameRate);
-        }
+        if( _frameRate == 0.0 )
+            _frameRate = stats.frameRate;
+
+        // Fix for ffmpeg's inability to make files with fps < 6.0. Don't believe me? Try these 2 commands and play
+        // output in vlc:
+        //
+        //   # generate a test movie of the game of life in life.mp4
+        //   ffmpeg -f lavfi -i life -frames:v 1000 life.mp4
+        //   # transcode and drop framerate of life.mp4 to 1 fps. output.mp4 won't play in vlc and will have a weird
+        //   # pause at the beginning for other players.
+        //   ffmpeg -i life.mp4 -vf fps=fps=1/1 -vcodec h264 output.mp4
+        //
+        if( _frameRate < 6.0 )
+            _frameRate = 6.0;
 
         int outputTimeBaseNum = 0;
         int outputTimeBaseDen = 0;
         int inputTimeBaseNum = 0;
         int inputTimeBaseDen = 0;
 
+        AVKit::DToQ( (1/stats.frameRate), inputTimeBaseNum, inputTimeBaseDen );
+        AVKit::DToQ( (1/_frameRate), outputTimeBaseNum, outputTimeBaseDen );
+
         if( transcoder.IsEmpty() )
         {
-            struct ResultStatistics stats = resultParser.GetStatistics();
-
-            AVKit::DToQ( (1/(double)stats.frameRate), inputTimeBaseNum, inputTimeBaseDen );
-
-            AVKit::DToQ( (1/_frameRate), outputTimeBaseNum, outputTimeBaseDen );
-
             transcoder = new H264Transcoder( inputTimeBaseNum, inputTimeBaseDen,
                                              outputTimeBaseNum, outputTimeBaseDen,
                                              _speed,
                                              _recorderURLS.KeyFrameOnly() ); // if our input is key only, enable decode skipping...
         }
 
-        double secondsPerFrameOfInput = (AVKit::QToD( inputTimeBaseNum, inputTimeBaseDen ) * _speed);
+        double secondsPer = AVKit::QToD(inputTimeBaseNum, inputTimeBaseDen) / (AVKit::QToD(inputTimeBaseNum, inputTimeBaseDen) / (AVKit::QToD(outputTimeBaseNum, outputTimeBaseDen) * _speed));
         int traversalNum = 0;
         int traversalDen = 0;
 
-        AVKit::DToQ( secondsPerFrameOfInput, traversalNum, traversalDen );
+        AVKit::DToQ( secondsPer, traversalNum, traversalDen );
 
         while( !resultParser.EndOfFile() )
         {
