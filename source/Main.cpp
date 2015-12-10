@@ -229,6 +229,12 @@ int main( int argc, char* argv[] )
     catch(XException& ex)
     {
         printf("%s",ex.what());
+        X_LOG_XSDK_EXCEPTION(ex);
+    }
+    catch(exception& ex)
+    {
+        printf("%s",ex.what());
+        X_LOG_STD_EXCEPTION(ex);
     }
     catch(...)
     {

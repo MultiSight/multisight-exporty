@@ -496,41 +496,7 @@ void* Request::EntryPoint()
             else X_STHROW( HTTP400Exception, ("A request with an unsupported HTTP method was received." ));
 
         }
-        catch( HTTP400Exception& ex )
-        {
-            X_LOG_ERROR( "%s", ex.what() );
-            response.SetStatusCode( ServerSideResponse::SC_400_Bad_Request );
-        }
-        catch( HTTP401Exception& ex )
-        {
-            X_LOG_ERROR( "%s", ex.what() );
-            response.SetStatusCode( ServerSideResponse::SC_401_Unauthorized );
-        }
-        catch( HTTP403Exception& ex )
-        {
-            X_LOG_ERROR( "%s", ex.what() );
-            response.SetStatusCode( ServerSideResponse::SC_403_Forbidden );
-        }
-        catch( HTTP404Exception& ex )
-        {
-            X_LOG_ERROR( "%s", ex.what() );
-            response.SetStatusCode( ServerSideResponse::SC_404_Not_Found );
-        }
-        catch( HTTP500Exception& ex )
-        {
-            X_LOG_ERROR( "%s", ex.what() );
-            response.SetStatusCode( ServerSideResponse::SC_500_Internal_Server_Error );
-        }
-        catch( HTTP501Exception& ex )
-        {
-            X_LOG_ERROR( "%s", ex.what() );
-            response.SetStatusCode( ServerSideResponse::SC_501_Not_Implemented );
-        }
-        catch( exception& ex )
-        {
-            X_LOG_ERROR( "%s", ex.what() );
-            response.SetStatusCode( ServerSideResponse::SC_500_Internal_Server_Error );
-        }
+        CATCH_TRANSLATE_HTTP_EXCEPTIONS(response)
 
         // Certain cases write their own response, and so we only write here if we still need
         // to.
@@ -539,9 +505,13 @@ void* Request::EntryPoint()
 
         _clientSocket->Close();
     }
+    catch( XException& ex )
+    {
+        X_LOG_XSDK_EXCEPTION(ex);
+    }
     catch( exception& ex )
     {
-        X_LOG_ERROR( "%s", ex.what() );
+        X_LOG_STD_EXCEPTION(ex);
     }
 
     _doneTime = Clock::currTime();
