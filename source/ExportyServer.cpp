@@ -17,7 +17,7 @@ using namespace WEBBY;
 using namespace std;
 
 static const int SERVER_PORT = 10013;
-static const size_t MAX_TRANSCODY_CACHE = 8;
+static const size_t MAX_TRANSCODY_CACHE = 4;
 
 ExportyServer::ExportyServer() :
     XBaseObject(),
