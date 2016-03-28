@@ -57,7 +57,7 @@ public:
     XIRef<AVKit::Packet> Process( XIRef<AVKit::Packet> input );
 
 private:
-    void _GetXPositions( uint16_t& timeX, uint16_t& msgX, uint16_t messageWidth );
+    void _GetXPositions( uint16_t& timeX, uint16_t& msgX, uint16_t messageWidth, uint16_t& bgX, uint16_t& bgWidth );
     void _DrawMessage( cairo_t* cr, PangoLayout* layout, uint16_t msgX, uint16_t y );
     void _DrawTime( cairo_t* cr, uint16_t timeX, uint16_t y );
 
@@ -104,7 +104,6 @@ private:
 
     void _FinishInit( XRef<AVKit::H264Encoder>& encoder,
                       XRef<AVKit::AVMuxer>& muxer,
-                      XRef<ExportOverlay>& ov,
                       AVKit::H264Decoder& decoder,
                       const XSDK::XString& tempFileName,
                       bool outputToFile,

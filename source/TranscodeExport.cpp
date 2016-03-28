@@ -12,6 +12,7 @@
 #include "TranscodeExport.h"
 #include "FrameStoreClient/ResultParser.h"
 #include "FrameStoreClient/Video.h"
+#include "Webby/WebbyException.h"
 #include "XSDK/XPath.h"
 #include "AVKit/AVDeMuxer.h"
 #include "AVKit/H264Transcoder.h"
@@ -25,6 +26,7 @@
 using namespace EXPORTY;
 using namespace XSDK;
 using namespace AVKit;
+using namespace WEBBY;
 using namespace FRAME_STORE_CLIENT;
 using namespace std;
 
@@ -87,18 +89,24 @@ XIRef<Packet> ExportOverlay::Process( XIRef<Packet> input )
         PangoLayout* layout = pango_cairo_create_layout( cr );
 
         pango_layout_set_text( layout, _decodedMsg.c_str(), -1 );
-        PangoFontDescription* desc = pango_font_description_from_string( "Helvetica 11.0" );
+        PangoFontDescription* desc = pango_font_description_from_string( "Helvetica 24" );
         pango_layout_set_font_description( layout, desc );
         pango_font_description_free( desc );
 
         PangoRectangle logicalRect;
         pango_layout_get_pixel_extents( layout, NULL, &logicalRect );
 
-        uint16_t y = (_vAlign==V_ALIGN_TOP) ? 10 : _height - 22;
+        uint16_t y = (_vAlign==V_ALIGN_TOP) ? 10 : _height - 52;
 
         uint16_t timeX = 0;
         uint16_t msgX = 0;
-        _GetXPositions( timeX, msgX, logicalRect.width );
+        uint16_t bgX = 0;
+        uint16_t bgWidth = 0;
+        _GetXPositions( timeX, msgX, logicalRect.width, bgX, bgWidth );
+
+        cairo_set_source_rgba( cr, 0.5, 0.5, 0.5, 0.50 );
+        cairo_rectangle( cr, bgX, y, bgWidth, 38 );
+        cairo_fill( cr );
 
         cairo_set_source_rgba( cr, 1.0, 1.0, 1.0, 1.0 );
 
@@ -131,29 +139,41 @@ XIRef<Packet> ExportOverlay::Process( XIRef<Packet> input )
     }
 }
 
-void ExportOverlay::_GetXPositions( uint16_t& timeX, uint16_t& msgX, uint16_t messageWidth )
+void ExportOverlay::_GetXPositions( uint16_t& timeX, uint16_t& msgX, uint16_t messageWidth, uint16_t& bgX, uint16_t& bgWidth )
 {
     if( _hAlign == H_ALIGN_LEFT )
     {
+        bgWidth = 0;
         if( _withTime )
+        {
             timeX = 10;
+            bgWidth += 5 + 370;
+        }
         if( !_msg.empty() )
         {
             if( _withTime )
-                msgX = 180;
+                msgX = 380;
             else msgX = 10;
+            bgWidth += messageWidth;
         }
+        bgX = 0;
     }
     else // _hAlign == H_ALIGN_RIGHT
     {
+        bgX = _width;
         if( _withTime )
+        {
             timeX = _width - 170;
+            bgX -= 170;
+        }
         if( !_msg.empty() )
         {
             if( _withTime )
                 msgX = _width - 170 - 10 - messageWidth;
             else msgX = _width - 10 - messageWidth;
+            bgX -= messageWidth + 10 + 10;
         }
+        bgWidth = _width - bgX;
     }
 }
 
@@ -176,7 +196,7 @@ void ExportOverlay::_DrawTime( cairo_t* cr, uint16_t timeX, uint16_t y )
 
     PangoLayout* layout = pango_cairo_create_layout( cr );
     pango_layout_set_text( layout, timeMessage, -1 );
-    PangoFontDescription* desc = pango_font_description_from_string( "Helvetica 11.0" );
+    PangoFontDescription* desc = pango_font_description_from_string( "Helvetica 24" );
     pango_layout_set_font_description( layout, desc );
     pango_font_description_free( desc );
 
@@ -237,75 +257,96 @@ void TranscodeExport::Create( XIRef<XMemory> output )
     XString recorderURI;
     while( _recorderURLS.GetNextURL( recorderURI ) )
     {
-        XIRef<XMemory> responseBuffer = FRAME_STORE_CLIENT::FetchVideo( _config->GetRecorderIP(),
-                                                                        _config->GetRecorderPort(),
-                                                                        recorderURI );
-
-        ResultParser resultParser;
-
-        resultParser.Parse( responseBuffer );
-
-        FRAME_STORE_CLIENT::ResultStatistics stats = resultParser.GetStatistics();
-
-        // If we are not provided with a bit rate or a frame rate, we use the sources values.
-        if( _bitRate == 0 )
-            _bitRate = stats.averageBitRate;
-
-        if( _frameRate == 0.0 )
-            _frameRate = stats.frameRate;
-
-        // Fix for ffmpeg's inability to make files with fps < 6.0. Don't believe me? Try these 2 commands and play
-        // output in vlc:
-        //
-        //   # generate a test movie of the game of life in life.mp4
-        //   ffmpeg -f lavfi -i life -frames:v 1000 life.mp4
-        //   # transcode and drop framerate of life.mp4 to 1 fps. output.mp4 won't play in vlc and will have a weird
-        //   # pause at the beginning for other players.
-        //   ffmpeg -i life.mp4 -vf fps=fps=1/1 -vcodec h264 output.mp4
-        //
-        if( _frameRate < 6.0 )
-            _frameRate = 6.0;
-
-        int outputTimeBaseNum = 0;
-        int outputTimeBaseDen = 0;
-        int inputTimeBaseNum = 0;
-        int inputTimeBaseDen = 0;
-
-        AVKit::DToQ( (1/stats.frameRate), inputTimeBaseNum, inputTimeBaseDen );
-        AVKit::DToQ( (1/_frameRate), outputTimeBaseNum, outputTimeBaseDen );
-
-        if( transcoder.IsEmpty() )
+        try
         {
-            transcoder = new H264Transcoder( inputTimeBaseNum, inputTimeBaseDen,
-                                             outputTimeBaseNum, outputTimeBaseDen,
-                                             _speed,
-                                             // if our input is key only, enable decode skipping...
-                                             _recorderURLS.KeyFrameOnly() );
-        }
+            XIRef<XMemory> responseBuffer = FRAME_STORE_CLIENT::FetchVideo( _config->GetRecorderIP(),
+                                                                            _config->GetRecorderPort(),
+                                                                            recorderURI );
 
-        double secondsPer = AVKit::QToD(inputTimeBaseNum, inputTimeBaseDen) / (AVKit::QToD(inputTimeBaseNum, inputTimeBaseDen) / (AVKit::QToD(outputTimeBaseNum, outputTimeBaseDen) * _speed));
-        int traversalNum = 0;
-        int traversalDen = 0;
+            ResultParser resultParser;
 
-        AVKit::DToQ( secondsPer, traversalNum, traversalDen );
+            resultParser.Parse( responseBuffer );
 
-        while( !resultParser.EndOfFile() )
-        {
-            if( transcoder->Decode( resultParser, decoder ) )
+            FRAME_STORE_CLIENT::ResultStatistics stats = resultParser.GetStatistics();
+
+            // If we are not provided with a bit rate or a frame rate, we use the sources values.
+            if( _bitRate == 0 )
+                _bitRate = stats.averageBitRate;
+
+            if( _frameRate == 0.0 )
+                _frameRate = stats.frameRate;
+
+            // Fix for ffmpeg's inability to make files with fps < 6.0. Don't believe me? Try these 2 commands and play
+            // output in vlc:
+            //
+            //   # generate a test movie of the game of life in life.mp4
+            //   ffmpeg -f lavfi -i life -frames:v 1000 life.mp4
+            //   # transcode and drop framerate of life.mp4 to 1 fps. output.mp4 won't play in vlc and will have a weird
+            //   # pause at the beginning for other players.
+            //   ffmpeg -i life.mp4 -vf fps=fps=1/1 -vcodec h264 output.mp4
+            //
+            if( _frameRate < 6.0 )
+                _frameRate = 6.0;
+
+            int outputTimeBaseNum = 0;
+            int outputTimeBaseDen = 0;
+            int inputTimeBaseNum = 0;
+            int inputTimeBaseDen = 0;
+
+            AVKit::DToQ( (1/stats.frameRate), inputTimeBaseNum, inputTimeBaseDen );
+            AVKit::DToQ( (1/_frameRate), outputTimeBaseNum, outputTimeBaseDen );
+
+            if( transcoder.IsEmpty() )
             {
-                if( encoder.IsEmpty() )
-                    _FinishInit( encoder, muxer, ov, decoder, tempFileName, outputToFile, traversalNum, traversalDen );
-
-                yuvToARGB->Transform( decoder.Get(), decoder.GetOutputWidth(), decoder.GetOutputHeight() );
-
-                XIRef<Packet> rgb = yuvToARGB->Get();
-
-                XIRef<Packet> withOverlay = ov->Process( rgb );
-
-                argbToYUV->Transform( withOverlay, decoder.GetOutputWidth(), decoder.GetOutputHeight() );
-
-                transcoder->EncodeYUV420PAndMux( *encoder, *muxer, argbToYUV->Get() );
+                transcoder = new H264Transcoder( inputTimeBaseNum, inputTimeBaseDen,
+                                                 outputTimeBaseNum, outputTimeBaseDen,
+                                                 _speed,
+                                                 // if our input is key only, enable decode skipping...
+                                                 _recorderURLS.KeyFrameOnly() );
             }
+
+            double secondsPer = AVKit::QToD(inputTimeBaseNum, inputTimeBaseDen) / (AVKit::QToD(inputTimeBaseNum, inputTimeBaseDen) / (AVKit::QToD(outputTimeBaseNum, outputTimeBaseDen) * _speed));
+            int traversalNum = 0;
+            int traversalDen = 0;
+
+            AVKit::DToQ( secondsPer, traversalNum, traversalDen );
+
+            while( !resultParser.EndOfFile() )
+            {
+                if( transcoder->Decode( resultParser, decoder ) )
+                {
+                    if( encoder.IsEmpty() )
+                        _FinishInit( encoder, muxer, decoder, tempFileName, outputToFile, traversalNum, traversalDen );
+
+                    if( ov.IsEmpty() )
+                        ov = new ExportOverlay( _msg,
+                                                _withTime,
+                                                XTime::CreateFromUnixTimeAsMSecs( resultParser.GetFrameTS() ),
+                                                _hAlign,
+                                                _vAlign,
+                                                decoder.GetOutputWidth(),
+                                                decoder.GetOutputHeight(),
+                                                traversalNum,
+                                                traversalDen );
+
+
+                    yuvToARGB->Transform( decoder.Get(), decoder.GetOutputWidth(), decoder.GetOutputHeight() );
+
+                    XIRef<Packet> rgb = yuvToARGB->Get();
+
+                    XIRef<Packet> withOverlay = ov->Process( rgb );
+
+                    argbToYUV->Transform( withOverlay, decoder.GetOutputWidth(), decoder.GetOutputHeight() );
+
+                    transcoder->EncodeYUV420PAndMux( *encoder, *muxer, argbToYUV->Get() );
+                }
+            }
+
+            ov.Clear();
+        }
+        catch( HTTP404Exception& ex )
+        {
+            X_LOG_NOTICE("Encountered 404 and gap in video during export. Continuing.");
         }
     }
 
@@ -344,7 +385,6 @@ XString TranscodeExport::_GetTMPName( const XString& fileName ) const
 
 void TranscodeExport::_FinishInit( XRef<H264Encoder>& encoder,
                                    XRef<AVMuxer>& muxer,
-                                   XRef<ExportOverlay>& ov,
                                    H264Decoder& decoder,
                                    const XString& tempFileName,
                                    bool outputToFile,
@@ -377,17 +417,6 @@ void TranscodeExport::_FinishInit( XRef<H264Encoder>& encoder,
     muxer = new AVMuxer( encoder->GetOptions(),
                          tempFileName,
                          (outputToFile) ? AVMuxer::OUTPUT_LOCATION_FILE : AVMuxer::OUTPUT_LOCATION_BUFFER );
-
-    // Create our overlay...
-    ov = new ExportOverlay( _msg,
-                            _withTime,
-                            XTime::FromISOExtString( _startTime ),
-                            _hAlign,
-                            _vAlign,
-                            decoder.GetOutputWidth(),
-                            decoder.GetOutputHeight(),
-                            traversalNum,
-                            traversalDen );
 
     // Finally, provide the muxer with our encoders extra data so we create valid conainers.
     muxer->SetExtraData( encoder->GetExtraData() );
