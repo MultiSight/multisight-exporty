@@ -253,6 +253,7 @@ void TranscodeExport::Create( XIRef<XMemory> output )
     XRef<H264Encoder> encoder;
     XRef<AVMuxer> muxer;
     XRef<ExportOverlay> ov;
+    bool wroteToContainer = false;
 
     XString recorderURI;
     while( _recorderURLS.GetNextURL( recorderURI ) )
@@ -339,6 +340,7 @@ void TranscodeExport::Create( XIRef<XMemory> output )
                     argbToYUV->Transform( withOverlay, decoder.GetOutputWidth(), decoder.GetOutputHeight() );
 
                     transcoder->EncodeYUV420PAndMux( *encoder, *muxer, argbToYUV->Get() );
+                    wroteToContainer = true;
                 }
             }
 
@@ -349,6 +351,9 @@ void TranscodeExport::Create( XIRef<XMemory> output )
             X_LOG_NOTICE("Encountered 404 and gap in video during export. Continuing.");
         }
     }
+
+    if( !wroteToContainer )
+        X_STHROW( HTTP404Exception, ("No video was found during entire export."));
 
     if( outputToFile )
     {
