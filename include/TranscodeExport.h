@@ -23,6 +23,7 @@
 #include <cairo.h>
 #include <pango/pangocairo.h>
 #include <gtk/gtk.h>
+#include <functional>
 
 namespace EXPORTY
 {
@@ -78,6 +79,7 @@ class TranscodeExport
 {
 public:
     TranscodeExport( XRef<Config> config,
+                     std::function<void(int)> progress,
                      const XSDK::XString& dataSourceID,
                      const XSDK::XString& startTime,
                      const XSDK::XString& endTime,
@@ -111,6 +113,7 @@ private:
                       int traversalDen );
 
     XRef<Config> _config;
+    std::function<void(int)> _progress;
     XSDK::XString _dataSourceID;
     XSDK::XString _startTime;
     XSDK::XString _endTime;

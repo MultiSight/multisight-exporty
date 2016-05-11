@@ -60,7 +60,6 @@ void* Request::EntryPoint()
         XString fullURI = uri.GetFullRawURI();
 
         ServerSideResponse response;
-        response.AddAdditionalHeader( "Connection", "Close" );
 
         bool responseWritten = false;
 
@@ -70,6 +69,8 @@ void* Request::EntryPoint()
 
             if( requestMethod == "get" )
             {
+                response.AddAdditionalHeader( "Connection", "Close" );
+
                 if( fullURI == "/server" )
                 {
                     response.SetBody("running");
@@ -215,6 +216,7 @@ void* Request::EntryPoint()
                         }
 
                         XRef<TranscodeExport> te = new TranscodeExport( _server.GetConfig(),
+                                                                        [](int progress){},
                                                                         dataSourceID,
                                                                         startTime,
                                                                         endTime,
@@ -307,10 +309,12 @@ void* Request::EntryPoint()
             {
                 if( fullURI == "/server/shutdown" )
                 {
+                    response.AddAdditionalHeader( "Connection", "Close" );
                     _server.Shutdown();
                 }
                 else if( fullURI.StartsWith( "/media" ) )
                 {
+                    response.AddAdditionalHeader( "Connection", "Close" );
                     XHash<XString> getArgs = uri.GetGetArgs();
 
                     XString dataSourceID;
@@ -439,7 +443,21 @@ void* Request::EntryPoint()
                             vAlign = V_ALIGN_BOTTOM;
                     }
 
+                    responseWritten = true;
+
+                    response.SetContentType("multipart/x-mixed-replace; boundary=\"progress\"");
+                    response.WriteResponse( _clientSocket );
+
                     XRef<TranscodeExport> te = new TranscodeExport( _server.GetConfig(),
+                                                                    [&](int progress) {
+                                                                        XHash<XString> headers;
+                                                                        headers.Add("Content-Type", "application/json");
+                                                                        XString report = XString::Format( "{ \"progress\": %d }", progress );
+                                                                        size_t reportLength = report.length();
+                                                                        XIRef<XMemory> chunk = new XMemory( reportLength );
+                                                                        memcpy( &chunk->Extend( reportLength ), report.c_str(), reportLength );
+                                                                        response.WritePart( _clientSocket, "progress", headers, chunk );
+                                                                    },
                                                                     dataSourceID,
                                                                     startTime,
                                                                     endTime,
@@ -455,6 +473,8 @@ void* Request::EntryPoint()
                                                                     speed.ToDouble() );
 
                     te->Create( XIRef<XMemory>() );
+
+                    response.WritePartFinalizer( "progress", _clientSocket );
                 }
                 else X_STHROW( HTTP400Exception, ("An http post occured against and unknown URI." ));
             }
@@ -464,6 +484,8 @@ void* Request::EntryPoint()
             }
             else if( requestMethod == "delete" )
             {
+                response.AddAdditionalHeader( "Connection", "Close" );
+
                 if( fullURI.StartsWith( "/media" ) )
                 {
                     XHash<XString> getArgs = uri.GetGetArgs();

@@ -207,6 +207,7 @@ void ExportOverlay::_DrawTime( cairo_t* cr, uint16_t timeX, uint16_t y )
 }
 
 TranscodeExport::TranscodeExport( XRef<Config> config,
+                                  function<void(int)> progress,
                                   const XString& dataSourceID,
                                   const XString& startTime,
                                   const XString& endTime,
@@ -221,6 +222,7 @@ TranscodeExport::TranscodeExport( XRef<Config> config,
                                   bool withTime,
                                   double speed ) :
     _config( config ),
+    _progress( progress ),
     _dataSourceID( dataSourceID ),
     _startTime( startTime ),
     _endTime( endTime ),
@@ -255,9 +257,21 @@ void TranscodeExport::Create( XIRef<XMemory> output )
     XRef<ExportOverlay> ov;
     bool wroteToContainer = false;
 
+    float lastPercentComplete = 0.0;
+
     XString recorderURI;
     while( _recorderURLS.GetNextURL( recorderURI ) )
     {
+        float percentComplete = _recorderURLS.PercentComplete();
+
+        X_LOG_NOTICE("percentComplete = %f\n",percentComplete);
+
+        if( (percentComplete - lastPercentComplete) > 0.01 )
+        {
+            lastPercentComplete = percentComplete;
+            _progress( (int)(percentComplete * 100) );
+        }
+
         try
         {
             XIRef<XMemory> responseBuffer = FRAME_STORE_CLIENT::FetchVideo( _config->GetRecorderIP(),
