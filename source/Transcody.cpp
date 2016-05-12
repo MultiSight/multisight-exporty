@@ -25,7 +25,7 @@
 #include "VAKit/VAH264Encoder.h"
 #include "VAKit/VAH264Decoder.h"
 #endif
-#include "FrameStoreClient/Video.h"
+#include "FrameStoreClient/Media.h"
 #include "MediaParser/MediaParser.h"
 
 using namespace XSDK;
@@ -107,12 +107,12 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
     X_LOG_NOTICE( "==>HLS Transcody::Get @ %s, bitrate = %u", transcodeStart.ToISOExtString().c_str(), _bitRate);
 
     XString adjustedEnd = (XTime::FromISOExtString( _endTime ) + XDuration( SECONDS, 2 )).ToISOExtString();
-
-    XIRef<XMemory> responseBuffer = FRAME_STORE_CLIENT::FetchVideo( _config->GetRecorderIP(),
+    XIRef<XMemory> responseBuffer = FRAME_STORE_CLIENT::FetchMedia( _config->GetRecorderIP(),
                                                                     _config->GetRecorderPort(),
                                                                     _dataSourceID,
                                                                     _startTime,
                                                                     adjustedEnd,
+                                                                    "video",
                                                                     true,
                                                                     (_speed > 1.0) ? true : false );
 

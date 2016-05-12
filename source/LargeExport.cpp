@@ -17,7 +17,7 @@
 #include "Webby/ClientSideRequest.h"
 #include "Webby/WebbyException.h"
 
-#include "FrameStoreClient/Video.h"
+#include "FrameStoreClient/Media.h"
 
 using namespace XSDK;
 using namespace EXPORTY;
@@ -37,7 +37,7 @@ LargeExport::LargeExport( XRef<Config> config,
     _startTime( startTime ),
     _endTime( endTime ),
     _fileName( fileName ),
-    _recorderURLS( new RecorderURLS( dataSourceID, startTime, endTime, 6000, false ) ),
+    _recorderURLS( new RecorderURLS( dataSourceID, startTime, endTime, 6000, "video", false ) ),
     _muxer(),
     _extension()
 {
@@ -55,7 +55,7 @@ void LargeExport::Create( XIRef<XMemory> output )
 
     while( _recorderURLS->GetNextURL( recorderURI ) )
     {
-        XIRef<XMemory> responseBuffer = FRAME_STORE_CLIENT::FetchVideo( _config->GetRecorderIP(),
+        XIRef<XMemory> responseBuffer = FRAME_STORE_CLIENT::FetchMedia( _config->GetRecorderIP(),
                                                                         _config->GetRecorderPort(),
                                                                         recorderURI );
 

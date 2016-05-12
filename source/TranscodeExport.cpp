@@ -11,7 +11,7 @@
 
 #include "TranscodeExport.h"
 #include "FrameStoreClient/ResultParser.h"
-#include "FrameStoreClient/Video.h"
+#include "FrameStoreClient/Media.h"
 #include "Webby/WebbyException.h"
 #include "XSDK/XPath.h"
 #include "AVKit/AVDeMuxer.h"
@@ -274,7 +274,7 @@ void TranscodeExport::Create( XIRef<XMemory> output )
 
         try
         {
-            XIRef<XMemory> responseBuffer = FRAME_STORE_CLIENT::FetchVideo( _config->GetRecorderIP(),
+            XIRef<XMemory> responseBuffer = FRAME_STORE_CLIENT::FetchMedia( _config->GetRecorderIP(),
                                                                             _config->GetRecorderPort(),
                                                                             recorderURI );
 
