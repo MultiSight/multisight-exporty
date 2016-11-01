@@ -18,6 +18,7 @@
 #include "XSDK/XBytePtr.h"
 #include "XSDK/XTime.h"
 #include "XSDK/TimeUtils.h"
+#include "XSDK/XPath.h"
 #include "Webby/WebbyException.h"
 
 using namespace EXPORTY;
@@ -495,7 +496,9 @@ void* Request::EntryPoint()
                         filePath = *getArgs.Find( "file_path" );
                     else X_STHROW( HTTP400Exception, ("file_path is required for /media deletes." ));
 
-                    int err = UNLINK( filePath.c_str() );
+                    int err = 0;
+                    if( !XPath::Exists("/data/exports/save_export") )
+                        err = UNLINK( filePath.c_str() );
 
                     if( err < 0 )
                         X_STHROW( HTTP500Exception,
