@@ -20,6 +20,7 @@
 #include "AVKit/YUV420PToARGB24.h"
 #include "AVKit/Options.h"
 #include "AVKit/Utils.h"
+#include "librsvg/rsvg.h" 
 #include <vector>
 #include <cmath>
 
@@ -49,17 +50,51 @@ ExportOverlay::ExportOverlay( const XSDK::XString& msg,
     _height( height ),
     _timeBaseNum( timeBaseNum),
     _timeBaseDen( timeBaseDen ),
-    _timePerFrame( ((double)timeBaseNum / timeBaseDen) )
+    _timePerFrame( ((double)timeBaseNum / timeBaseDen) ),
+    _logoX( (uint16_t)((double)_width * 0.79) ),
+    _logoY( (uint16_t)((double)_height * 0.91) ),
+    _logoWidth( (uint16_t)((double)_width * 0.2) ),
+    _logoHeight( (uint16_t)((double)_height * 0.07) ),
+    _wmSurface( NULL )
 {
     if( !_msg.empty() )
     {
         XIRef<XSDK::XMemory> decodedBuf = _msg.FromBase64();
         _decodedMsg = XString( (const char*)decodedBuf->Map(), decodedBuf->GetDataSize() );
     }
+
+    X_LOG_NOTICE("watermark: x=%u, y=%u, w=%u, h=%u", _logoX, _logoY, _logoWidth, _logoHeight);
+
+    _wmSurface = cairo_image_surface_create( CAIRO_FORMAT_ARGB32, _logoWidth, _logoHeight );
+
+    if( !_wmSurface )
+        X_THROW(("Unable to allocate cairo surface for watermark: _logoWidth = %u, _logoHeight = %u", _logoWidth, _logoHeight));
+
+    cairo_t* wmCr = cairo_create( _wmSurface );
+
+    if( !wmCr )
+        X_THROW(("Unable to allocate cairo handle for watermark."));
+
+    cairo_scale( wmCr, (double)_width / 1408, (double)_height / 792 );
+
+    GError* err = NULL;
+    RsvgHandle* rsvgHandle = rsvg_handle_new_from_file("multisight-logo-white-outline.svg", &err);
+
+    if( !rsvgHandle )
+        X_THROW(("Unable to open ms logo from svg for watermark."));
+
+    if( rsvg_handle_render_cairo( rsvgHandle, wmCr ) != TRUE )
+        X_THROW(("svg render failed for watermark."));
+
+    g_object_unref(rsvgHandle);
+
+    cairo_destroy( wmCr );
+
 }
 
 ExportOverlay::~ExportOverlay() throw()
 {
+    cairo_surface_destroy( _wmSurface );
 }
 
 XIRef<Packet> ExportOverlay::Process( XIRef<Packet> input )
@@ -118,6 +153,14 @@ XIRef<Packet> ExportOverlay::Process( XIRef<Packet> input )
 
         g_object_unref( layout );
 
+        // copy from our watermark surface to our output surface...
+        cairo_set_source_surface( cr, _wmSurface, _logoX, _logoY );
+        cairo_rectangle( cr, _logoX, _logoY, _logoWidth, _logoHeight );
+        cairo_clip( cr );
+        cairo_paint_with_alpha( cr, 0.70 );
+        //cairo_fill( cr );
+
+        // Copy data out of our cairo surface into our output packet...
         size_t outputSize = (cairoSrcWidth * 4) * cairoSrcHeight;
         XIRef<Packet> dest = new Packet( outputSize );
         memcpy( dest->Map(), cairoSrc, outputSize );

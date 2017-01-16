@@ -29,8 +29,9 @@ include_directories(/usr/include/atk-1.0)
 include_directories(/usr/include/gdk-pixbuf-2.0)
 include_directories(/usr/include/glib-2.0)
 include_directories(/usr/lib64/glib-2.0/include)
+include_directories(/usr/include/librsvg-2.0)
 
-set(LINUX_LIBS XSDK Webby MediaParser FrameStoreClient AVKit VAKit pangocairo-1.0 pango-1.0 cairo gobject-2.0)
+set(LINUX_LIBS XSDK Webby MediaParser FrameStoreClient AVKit VAKit pangocairo-1.0 pango-1.0 cairo rsvg-2 gobject-2.0)
 
 add_definitions(-D__STDC_CONSTANT_MACROS)
 
@@ -49,6 +50,7 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/resources/exporty_exec_start_pre PERMI
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/resources/exportyd.service DESTINATION /lib/systemd/system)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/resources/runExporty DESTINATION Exporty)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/resources/60_exporty_rsyslog.conf DESTINATION /etc/rsyslog.d)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/resources/multisight-logo-white-outline.svg DESTINATION Exporty)
 if(CMAKE_SYSTEM MATCHES "Windows")
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/config/windows/config.xml DESTINATION Exporty)
 elseif(CMAKE_SYSTEM MATCHES "Linux")

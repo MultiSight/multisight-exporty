@@ -73,6 +73,11 @@ private:
     int _timeBaseNum;
     int _timeBaseDen;
     double _timePerFrame;
+    uint16_t _logoX;
+    uint16_t _logoY;
+    uint16_t _logoWidth;
+    uint16_t _logoHeight;
+    cairo_surface_t* _wmSurface;
 };
 
 class TranscodeExport
