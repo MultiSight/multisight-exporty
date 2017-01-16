@@ -52,7 +52,7 @@ ExportOverlay::ExportOverlay( const XSDK::XString& msg,
     _timeBaseDen( timeBaseDen ),
     _timePerFrame( ((double)timeBaseNum / timeBaseDen) ),
     _logoX( (uint16_t)((double)_width * 0.79) ),
-    _logoY( (uint16_t)((double)_height * 0.91) ),
+    _logoY( (uint16_t)((double)_height * 0.92) ),
     _logoWidth( (uint16_t)((double)_width * 0.2) ),
     _logoHeight( (uint16_t)((double)_height * 0.07) ),
     _wmSurface( NULL )
@@ -124,14 +124,14 @@ XIRef<Packet> ExportOverlay::Process( XIRef<Packet> input )
         PangoLayout* layout = pango_cairo_create_layout( cr );
 
         pango_layout_set_text( layout, _decodedMsg.c_str(), -1 );
-        PangoFontDescription* desc = pango_font_description_from_string( "Helvetica 24" );
+        PangoFontDescription* desc = pango_font_description_from_string( "Helvetica 22" );
         pango_layout_set_font_description( layout, desc );
         pango_font_description_free( desc );
 
         PangoRectangle logicalRect;
         pango_layout_get_pixel_extents( layout, NULL, &logicalRect );
 
-        uint16_t y = (_vAlign==V_ALIGN_TOP) ? 10 : _height - 52;
+        uint16_t y = (_vAlign==V_ALIGN_TOP) ? 14 : _height - 52;
 
         uint16_t timeX = 0;
         uint16_t msgX = 0;
@@ -140,9 +140,9 @@ XIRef<Packet> ExportOverlay::Process( XIRef<Packet> input )
         _GetXPositions( timeX, msgX, logicalRect.width, bgX, bgWidth );
 
         cairo_set_source_rgba( cr, 0.5, 0.5, 0.5, 0.50 );
-        cairo_rectangle( cr, bgX, y, bgWidth, 38 );
+        cairo_rectangle( cr, bgX, y, bgWidth, 32 );
         cairo_fill( cr );
-
+       
         cairo_set_source_rgba( cr, 1.0, 1.0, 1.0, 1.0 );
 
         if( !_decodedMsg.empty() )
@@ -158,7 +158,6 @@ XIRef<Packet> ExportOverlay::Process( XIRef<Packet> input )
         cairo_rectangle( cr, _logoX, _logoY, _logoWidth, _logoHeight );
         cairo_clip( cr );
         cairo_paint_with_alpha( cr, 0.70 );
-        //cairo_fill( cr );
 
         // Copy data out of our cairo surface into our output packet...
         size_t outputSize = (cairoSrcWidth * 4) * cairoSrcHeight;
@@ -189,17 +188,17 @@ void ExportOverlay::_GetXPositions( uint16_t& timeX, uint16_t& msgX, uint16_t me
         bgWidth = 0;
         if( _withTime )
         {
-            timeX = 10;
-            bgWidth += 5 + 370;
+            timeX = 16;
+            bgWidth += 380;
         }
         if( !_msg.empty() )
         {
             if( _withTime )
-                msgX = 380;
-            else msgX = 10;
-            bgWidth += messageWidth;
+                msgX = 390;
+            else msgX = 16;
+            bgWidth += messageWidth + 2;
         }
-        bgX = 0;
+        bgX = 12;
     }
     else // _hAlign == H_ALIGN_RIGHT
     {
@@ -239,7 +238,7 @@ void ExportOverlay::_DrawTime( cairo_t* cr, uint16_t timeX, uint16_t y )
 
     PangoLayout* layout = pango_cairo_create_layout( cr );
     pango_layout_set_text( layout, timeMessage, -1 );
-    PangoFontDescription* desc = pango_font_description_from_string( "Helvetica 24" );
+    PangoFontDescription* desc = pango_font_description_from_string( "Helvetica 22" );
     pango_layout_set_font_description( layout, desc );
     pango_font_description_free( desc );
 
@@ -400,8 +399,6 @@ void TranscodeExport::Create( XIRef<XMemory> output )
                     wroteToContainer = true;
                 }
             }
-
-            ov.Clear();
         }
         catch( HTTP404Exception& ex )
         {
