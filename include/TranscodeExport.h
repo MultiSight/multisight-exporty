@@ -84,7 +84,7 @@ class TranscodeExport
 {
 public:
     TranscodeExport( XRef<Config> config,
-                     std::function<void(int)> progress,
+                     std::function<void(float)> progress,
                      const XSDK::XString& dataSourceID,
                      const XSDK::XString& startTime,
                      const XSDK::XString& endTime,
@@ -118,7 +118,7 @@ private:
                       int traversalDen );
 
     XRef<Config> _config;
-    std::function<void(int)> _progress;
+    std::function<void(float)> _progress;
     XSDK::XString _dataSourceID;
     XSDK::XString _startTime;
     XSDK::XString _endTime;
@@ -133,6 +133,8 @@ private:
     bool _withTime;
     double _speed;
     FRAME_STORE_CLIENT::RecorderURLS _recorderURLS;
+
+    static int _exportsInProgress;
 };
 
 }

@@ -450,10 +450,10 @@ void* Request::EntryPoint()
                     response.WriteResponse( _clientSocket );
 
                     XRef<TranscodeExport> te = new TranscodeExport( _server.GetConfig(),
-                                                                    [&](int progress) {
+                                                                    [&](float progress) {
                                                                         XHash<XString> headers;
                                                                         headers.Add("Content-Type", "application/json");
-                                                                        XString report = XString::Format( "{ \"progress\": %d }", progress );
+                                                                        XString report = XString::Format( "{ \"progress\": %f }", progress );
                                                                         size_t reportLength = report.length();
                                                                         XIRef<XMemory> chunk = new XMemory( reportLength );
                                                                         memcpy( &chunk->Extend( reportLength ), report.c_str(), reportLength );

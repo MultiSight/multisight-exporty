@@ -14,13 +14,15 @@
 #include "FrameStoreClient/Media.h"
 #include "Webby/WebbyException.h"
 #include "XSDK/XPath.h"
+#include "XSDK/XMD5.h"
 #include "AVKit/AVDeMuxer.h"
 #include "AVKit/H264Transcoder.h"
 #include "AVKit/ARGB24ToYUV420P.h"
 #include "AVKit/YUV420PToARGB24.h"
 #include "AVKit/Options.h"
 #include "AVKit/Utils.h"
-#include "librsvg/rsvg.h" 
+#include "librsvg/rsvg.h"
+#include <future>
 #include <vector>
 #include <cmath>
 
@@ -30,6 +32,9 @@ using namespace AVKit;
 using namespace WEBBY;
 using namespace FRAME_STORE_CLIENT;
 using namespace std;
+using namespace std::chrono;
+
+int TranscodeExport::_exportsInProgress = 0;
 
 ExportOverlay::ExportOverlay( const XSDK::XString& msg,
                               bool withTime,
@@ -249,7 +254,7 @@ void ExportOverlay::_DrawTime( cairo_t* cr, uint16_t timeX, uint16_t y )
 }
 
 TranscodeExport::TranscodeExport( XRef<Config> config,
-                                  function<void(int)> progress,
+                                  function<void(float)> progress,
                                   const XString& dataSourceID,
                                   const XString& startTime,
                                   const XString& endTime,
@@ -280,15 +285,29 @@ TranscodeExport::TranscodeExport( XRef<Config> config,
     _speed( speed ),
     _recorderURLS( dataSourceID, startTime, endTime, speed )
 {
+    ++_exportsInProgress;
 }
 
 TranscodeExport::~TranscodeExport() throw()
 {
+    --_exportsInProgress;
 }
 
 void TranscodeExport::Create( XIRef<XMemory> output )
 {
     XString tempFileName = _GetTMPName( _fileName );
+
+    // If their is only 1 export in progress (us), but the temp file exists then it means we were interrupted
+    // (either a power issue, or a segfault) and we should delete the temporary.
+    if( _exportsInProgress == 1 )
+    {
+        if( XPath::Exists(tempFileName) )
+            unlink(tempFileName.c_str());
+    }
+
+    if( XPath::Exists(tempFileName) )
+        X_THROW(("Export in progress exception: %s", tempFileName.c_str()));
+
     bool outputToFile = (output.IsEmpty()) ? true : false;
     H264Decoder decoder( GetFastH264DecoderOptions() );
     XRef<YUV420PToARGB24> yuvToARGB = new YUV420PToARGB24;
@@ -299,21 +318,22 @@ void TranscodeExport::Create( XIRef<XMemory> output )
     XRef<ExportOverlay> ov;
     bool wroteToContainer = false;
 
-    float lastPercentComplete = 0.0;
+    auto lastProgressTime = steady_clock::now();
+
+    // We are going to count how many decoding or encoding exceptions we get... If it
+    // ever exceeds some large threshold, we bail on this export.
+    int64_t codingExceptions = 0;
 
     XString recorderURI;
     while( _recorderURLS.GetNextURL( recorderURI ) )
     {
-        float percentComplete = _recorderURLS.PercentComplete();
-
-        X_LOG_NOTICE("percentComplete = %f\n",percentComplete);
-
-        if( (percentComplete - lastPercentComplete) > 0.01 )
+        auto now = steady_clock::now();
+        if( duration_cast<seconds>(now-lastProgressTime).count() > 2 )
         {
-            lastPercentComplete = percentComplete;
-            _progress( (int)(percentComplete * 100) );
+            _progress( _recorderURLS.PercentComplete() );
+            lastProgressTime = now;
         }
-
+        
         try
         {
             XIRef<XMemory> responseBuffer = FRAME_STORE_CLIENT::FetchMedia( _config->GetRecorderIP(),
@@ -370,33 +390,45 @@ void TranscodeExport::Create( XIRef<XMemory> output )
 
             while( !resultParser.EndOfFile() )
             {
-                if( transcoder->Decode( resultParser, decoder ) )
+                try
                 {
-                    if( encoder.IsEmpty() )
-                        _FinishInit( encoder, muxer, decoder, tempFileName, outputToFile, traversalNum, traversalDen );
+                    if( transcoder->Decode( resultParser, decoder ) )
+                    {
+                        if( encoder.IsEmpty() )
+                            _FinishInit( encoder, muxer, decoder, tempFileName, outputToFile, traversalNum, traversalDen );
 
-                    if( ov.IsEmpty() )
-                        ov = new ExportOverlay( _msg,
-                                                _withTime,
-                                                XTime::CreateFromUnixTimeAsMSecs( resultParser.GetFrameTS() ),
-                                                _hAlign,
-                                                _vAlign,
-                                                decoder.GetOutputWidth(),
-                                                decoder.GetOutputHeight(),
-                                                traversalNum,
-                                                traversalDen );
+                        if( ov.IsEmpty() )
+                            ov = new ExportOverlay( _msg,
+                                                    _withTime,
+                                                    XTime::CreateFromUnixTimeAsMSecs( resultParser.GetFrameTS() ),
+                                                    _hAlign,
+                                                    _vAlign,
+                                                    decoder.GetOutputWidth(),
+                                                    decoder.GetOutputHeight(),
+                                                    traversalNum,
+                                                    traversalDen );
 
+                        yuvToARGB->Transform( decoder.Get(), decoder.GetOutputWidth(), decoder.GetOutputHeight() );
 
-                    yuvToARGB->Transform( decoder.Get(), decoder.GetOutputWidth(), decoder.GetOutputHeight() );
+                        XIRef<Packet> rgb = yuvToARGB->Get();
 
-                    XIRef<Packet> rgb = yuvToARGB->Get();
+                        XIRef<Packet> withOverlay = ov->Process( rgb );
 
-                    XIRef<Packet> withOverlay = ov->Process( rgb );
+                        argbToYUV->Transform( withOverlay, decoder.GetOutputWidth(), decoder.GetOutputHeight() );
 
-                    argbToYUV->Transform( withOverlay, decoder.GetOutputWidth(), decoder.GetOutputHeight() );
+                        transcoder->EncodeYUV420PAndMux( *encoder, *muxer, argbToYUV->Get() );
+                        wroteToContainer = true;
+                    }
+                }
+                catch(XException& ex)
+                {
+                    X_LOG_NOTICE("Coding exception: %s",ex.what());
+                    
+                    ++codingExceptions;
 
-                    transcoder->EncodeYUV420PAndMux( *encoder, *muxer, argbToYUV->Get() );
-                    wroteToContainer = true;
+                    // If we have had a LOT of decoding or encoding exceptions, just give up.
+                    if( codingExceptions > 100000 )
+                        throw ex;
                 }
             }
         }
@@ -419,27 +451,39 @@ void TranscodeExport::Create( XIRef<XMemory> output )
 
 XString TranscodeExport::_GetTMPName( const XString& fileName ) const
 {
+    if( !fileName.Contains(".") )
+        X_THROW(("No extension in file name!"));
+
+    if( !fileName.Contains(PATH_SLASH) )
+        X_THROW(("Need full path to file for export."));
+
     vector<XString> parts;
-    fileName.Split( "/", parts );
+    fileName.Split( PATH_SLASH, parts );
+
+    if( parts.size() < 2 )
+        X_THROW(("Invalid export path: %s",fileName.c_str()));;
 
     XString path;
 
     for( int i = 0; i < ((int)parts.size() - 1); i++ )
         path += XString::Format( "%s%s", PATH_SLASH, parts[i].c_str() );
 
-#ifdef WIN32
-    uint32_t randomVal = rand();
-#else
-    uint32_t randomVal = random();
-#endif
+    XString mediaFileName = parts[parts.size()-1];
 
-    XString ext = fileName.substr( fileName.rfind( "." ) );
+    XString fileBaseName = mediaFileName.substr(0, mediaFileName.find("."));
+    XString extension = mediaFileName.substr(mediaFileName.find(".")+1);
 
-    return XString::Format( "%s%sexporty-tmp-%s%s",
+    XMD5 hash;
+    hash.Update( (uint8_t*)fileBaseName.c_str(), fileBaseName.length() );
+    hash.Finalize();
+
+    XString fileBaseNameHash = hash.GetAsString();
+
+    return XString::Format( "%s%sexport-tmp-%s.%s",
                             path.c_str(),
                             PATH_SLASH,
-                            XString::FromUInt32(randomVal).c_str(),
-                            ext.c_str() );
+                            fileBaseNameHash.c_str(),
+                            extension.c_str() );
 }
 
 void TranscodeExport::_FinishInit( XRef<H264Encoder>& encoder,
