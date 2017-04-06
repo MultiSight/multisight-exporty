@@ -317,6 +317,7 @@ void TranscodeExport::Create( XIRef<XMemory> output )
     XRef<AVMuxer> muxer;
     XRef<ExportOverlay> ov;
     bool wroteToContainer = false;
+	bool sentProgress = false;
 
     auto lastProgressTime = steady_clock::now();
 
@@ -328,9 +329,10 @@ void TranscodeExport::Create( XIRef<XMemory> output )
     while( _recorderURLS.GetNextURL( recorderURI ) )
     {
         auto now = steady_clock::now();
-        if( duration_cast<seconds>(now-lastProgressTime).count() > 2 )
+        if( wroteToContainer && duration_cast<seconds>(now-lastProgressTime).count() > 2 )
         {
             _progress( _recorderURLS.PercentComplete() );
+			sentProgress = true;
             lastProgressTime = now;
         }
         
@@ -437,6 +439,12 @@ void TranscodeExport::Create( XIRef<XMemory> output )
             X_LOG_NOTICE("Encountered 404 and gap in video during export. Continuing.");
         }
     }
+
+	if( wroteToContainer && !sentProgress )
+	{
+        _progress( _recorderURLS.PercentComplete() );
+		sentProgress = true;
+	}
 
     if( !wroteToContainer )
         X_STHROW( HTTP404Exception, ("No video was found during entire export."));

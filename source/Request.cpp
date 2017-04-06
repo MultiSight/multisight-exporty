@@ -444,13 +444,14 @@ void* Request::EntryPoint()
                             vAlign = V_ALIGN_BOTTOM;
                     }
 
-                    responseWritten = true;
-
-                    response.SetContentType("multipart/x-mixed-replace; boundary=\"progress\"");
-                    response.WriteResponse( _clientSocket );
-
                     XRef<TranscodeExport> te = new TranscodeExport( _server.GetConfig(),
                                                                     [&](float progress) {
+                                                                        if( progress > 0.0 && !responseWritten )
+                                                                        {
+                                                                            responseWritten = true;
+                                                                            response.SetContentType("multipart/x-mixed-replace; boundary=\"progress\"");
+                                                                            response.WriteResponse( _clientSocket );
+                                                                        }
                                                                         XHash<XString> headers;
                                                                         headers.Add("Content-Type", "application/json");
                                                                         XString report = XString::Format( "{ \"progress\": %f }", progress );
