@@ -434,9 +434,9 @@ void TranscodeExport::Create( XIRef<XMemory> output )
                 }
             }
         }
-        catch( HTTP404Exception& ex )
+        catch( XException& ex )
         {
-            X_LOG_NOTICE("Encountered 404 and gap in video during export. Continuing.");
+            X_LOG_NOTICE("Exception thrown while processing export. Continuing: %s",ex.what());
         }
     }
 
