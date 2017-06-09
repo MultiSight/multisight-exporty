@@ -182,6 +182,8 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
     }
     else
     {
+        bool decodeSkipping = (_speed > 1.0) ? true : false;
+
         double outputFramesPerInputFrame = (_framerate / (sourceFramerate * _speed));
 
         bool doneDecoding = false;
@@ -207,9 +209,12 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
 
                 lastFrameTS = resultParser->GetFrameTS();
 
-                decoder->Decode( resultParser->Get() );
-
                 framerateStep += outputFramesPerInputFrame;
+
+                if( decodeSkipping && framerateStep < 1.0 )
+                    continue;
+
+                decoder->Decode( resultParser->Get() );
 
                 // on the first frame of the first file, our encoder needs to be setup...
                 if( encoder.IsEmpty() )
