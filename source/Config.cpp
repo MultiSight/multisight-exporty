@@ -34,7 +34,8 @@ Config::Config() :
     _logFilePath( "" ),
     _hasDRIEncoding( false ),
     _hasDRIDecoding( false ),
-    _transcodeSleep( 0 )
+    _transcodeSleep( 0 ),
+    _enableDecodeSkipping( false )
 {
     if( XPath::Exists( "config.xml" ) )
     {
@@ -70,6 +71,13 @@ Config::Config() :
 
             if( !searchResults.empty() )
                 _transcodeSleep = searchResults.front()->GetData().ToInt();
+        }
+
+        {
+            list<XIRef<XDomParserNode> > searchResults = domParser->SearchForAll( "decode_skipping", rootNode );
+
+            if( !searchResults.empty() )
+                _enableDecodeSkipping = searchResults.front()->GetData().ToInt() != 0;
         }
 
     }
@@ -129,4 +137,9 @@ bool Config::HasDRIDecoder() const
 int Config::GetTranscodeSleep() const
 {
     return _transcodeSleep;
+}
+
+bool Config::EnableDecodeSkipping() const
+{
+    return _enableDecodeSkipping;
 }

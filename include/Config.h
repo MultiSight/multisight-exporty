@@ -33,6 +33,8 @@ public:
 
     X_API int GetTranscodeSleep() const;
 
+    X_API bool EnableDecodeSkipping() const;
+
 private:
     Config( const Config& obj );
     Config& operator = ( const Config& obj );
@@ -43,6 +45,7 @@ private:
     bool _hasDRIEncoding;
     bool _hasDRIDecoding;
     int _transcodeSleep;
+    bool _enableDecodeSkipping;
 };
 
 }

@@ -182,7 +182,7 @@ XIRef<XMemory> Transcody::Get( int64_t& lastFrameTS )
     }
     else
     {
-        bool decodeSkipping = (_speed > 1.0) ? true : false;
+        bool decodeSkipping = _speed > 1.0 && _config->EnableDecodeSkipping();
 
         double outputFramesPerInputFrame = (_framerate / (sourceFramerate * _speed));
 
