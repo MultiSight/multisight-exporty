@@ -261,6 +261,10 @@ TranscodeExport::TranscodeExport( XRef<Config> config,
                                   uint16_t width,
                                   uint16_t height,
                                   uint32_t bitRate,
+                                  uint32_t maxRate,
+                                  uint32_t bufSize,
+                                  uint32_t qmin,
+                                  uint32_t qmax,
                                   double frameRate,
                                   const XString& fileName,
                                   OverlayHAlign hAlign,
@@ -276,6 +280,10 @@ TranscodeExport::TranscodeExport( XRef<Config> config,
     _requestedWidth( width ),
     _requestedHeight( height ),
     _bitRate( bitRate ),
+    _maxRate( maxRate ),
+    _bufSize( bufSize ),
+    _qmin( qmin ),
+    _qmax( qmax ),
     _frameRate( frameRate ),
     _fileName( fileName ),
     _hAlign( hAlign ),
@@ -351,6 +359,12 @@ void TranscodeExport::Create( XIRef<XMemory> output )
             // If we are not provided with a bit rate or a frame rate, we use the sources values.
             if( _bitRate == 0 )
                 _bitRate = stats.averageBitRate;
+            
+            if( _maxRate == 0 )
+                _maxRate = 2 * stats.averageBitRate;
+
+            if( _bufSize == 0 )
+                _bufSize = 2 * stats.averageBitRate;
 
             if( _frameRate == 0.0 )
                 _frameRate = stats.frameRate;
@@ -520,7 +534,10 @@ void TranscodeExport::_FinishInit( XRef<H264Encoder>& encoder,
     int timeBaseDen = 0;
     AVKit::DToQ( (1 / _frameRate), timeBaseNum, timeBaseDen );
 
-    CodecOptions options = GetHLSH264EncoderOptions( _bitRate, width, height, 15, timeBaseNum, timeBaseDen );
+    X_LOG_NOTICE("_bitRate = %u, _maxRate = %u, _bufSize = %u, _qmin = %u, _qmax = %u",_bitRate,_maxRate,_bufSize,_qmin,_qmax);
+
+    CodecOptions options = GetTranscodeExportH264EncoderOptions( _bitRate, _maxRate, _bufSize, _qmin, _qmax, width, height, 15, timeBaseNum, timeBaseDen );
+//    CodecOptions options = GetHLSH264EncoderOptions( _bitRate, width, height, 15, timeBaseNum, timeBaseDen );
 
     encoder = new H264Encoder( options, false );
 

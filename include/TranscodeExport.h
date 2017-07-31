@@ -91,6 +91,10 @@ public:
                      uint16_t width,
                      uint16_t height,
                      uint32_t bitRate,
+                     uint32_t maxRate,
+                     uint32_t bufSize,
+                     uint32_t qmin,
+                     uint32_t qmax,
                      double frameRate,
                      const XSDK::XString& fileName,
                      OverlayHAlign hAlign,
@@ -125,6 +129,10 @@ private:
     uint16_t _requestedWidth;
     uint16_t _requestedHeight;
     uint32_t _bitRate;
+    uint32_t _maxRate;
+    uint32_t _bufSize;
+    uint32_t _qmin;
+    uint32_t _qmax;
     double _frameRate;
     XSDK::XString _fileName;
     OverlayHAlign _hAlign;

@@ -29,6 +29,7 @@ using namespace std;
 static const uint32_t MEDIA_CHUNK_SIZE = 16384;
 
 static const XString DEFAULT_ENCODE_BIT_RATE = "0";
+static const XString DEFUALT_ENCODE_MAX_RATE = "0";
 
 Request::Request( ExportyServer& server ) :
     _server( server ),
@@ -172,6 +173,23 @@ void* Request::EntryPoint()
                         bitRate = *getArgs.Find( "bit_rate" );
                     else bitRate = DEFAULT_ENCODE_BIT_RATE;
 
+                    XString maxRate;
+                    if( getArgs.Find( "max_rate" ) )
+                        maxRate = *getArgs.Find( "max_rate" );
+                    else maxRate = DEFUALT_ENCODE_MAX_RATE;
+
+                    XString bufSize = "0";
+                    if( getArgs.Find( "buf_size" ) )
+                        bufSize = *getArgs.Find( "buf_size" );
+
+                    XString qmin = "3";
+                    if( getArgs.Find( "qmin" ) )
+                        qmin = *getArgs.Find( "qmin" );
+
+                    XString qmax = "51";
+                    if( getArgs.Find( "qmax" ) )
+                        qmax = *getArgs.Find( "qmax" );
+
                     XString initialQP;
                     if( getArgs.Find( "initial_qp" ) )
                         initialQP = *getArgs.Find( "initial_qp" );
@@ -224,6 +242,10 @@ void* Request::EntryPoint()
                                                                         width.ToUInt16(),
                                                                         height.ToUInt16(),
                                                                         bitRate.ToUInt32(),
+                                                                        maxRate.ToUInt32(),
+                                                                        bufSize.ToUInt32(),
+                                                                        qmin.ToUInt32(),
+                                                                        qmax.ToUInt32(),
                                                                         framerate.ToDouble(),
                                                                         fileName,
                                                                         hAlign,
@@ -401,6 +423,23 @@ void* Request::EntryPoint()
                         bitRate = *getArgs.Find( "bit_rate" );
                     else bitRate = DEFAULT_ENCODE_BIT_RATE;
 
+                    XString maxRate;
+                    if( getArgs.Find( "max_rate" ) )
+                        maxRate = *getArgs.Find( "max_rate" );
+                    else maxRate = DEFUALT_ENCODE_MAX_RATE;
+
+                    XString bufSize = "0";
+                    if( getArgs.Find( "buf_size" ) )
+                        bufSize = *getArgs.Find( "buf_size" );
+
+                    XString qmin = "3";
+                    if( getArgs.Find( "qmin" ) )
+                        qmin = *getArgs.Find( "qmin" );
+
+                    XString qmax = "51";
+                    if( getArgs.Find( "qmax" ) )
+                        qmax = *getArgs.Find( "qmax" );
+
                     XString framerate;
                     if( getArgs.Find( "framerate" ) )
                         framerate = *getArgs.Find( "framerate" );
@@ -466,6 +505,10 @@ void* Request::EntryPoint()
                                                                     width.ToUInt16(),
                                                                     height.ToUInt16(),
                                                                     bitRate.ToUInt32(),
+                                                                    maxRate.ToUInt32(),
+                                                                    bufSize.ToUInt32(),
+                                                                    qmin.ToUInt32(),
+                                                                    qmax.ToUInt32(),
                                                                     framerate.ToDouble(),
                                                                     filePath,
                                                                     hAlign,
