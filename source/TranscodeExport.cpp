@@ -534,10 +534,7 @@ void TranscodeExport::_FinishInit( XRef<H264Encoder>& encoder,
     int timeBaseDen = 0;
     AVKit::DToQ( (1 / _frameRate), timeBaseNum, timeBaseDen );
 
-    X_LOG_NOTICE("_bitRate = %u, _maxRate = %u, _bufSize = %u, _qmin = %u, _qmax = %u",_bitRate,_maxRate,_bufSize,_qmin,_qmax);
-
-    CodecOptions options = GetTranscodeExportH264EncoderOptions( _bitRate, _maxRate, _bufSize, _qmin, _qmax, width, height, 15, timeBaseNum, timeBaseDen );
-//    CodecOptions options = GetHLSH264EncoderOptions( _bitRate, width, height, 15, timeBaseNum, timeBaseDen );
+    CodecOptions options = GetCRFH264EncoderOptions( 26, width, height, 15, timeBaseNum, timeBaseDen );
 
     encoder = new H264Encoder( options, false );
 
