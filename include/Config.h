@@ -13,9 +13,17 @@
 #define __EXPORTY_Config_h
 
 #include "XSDK/XBaseObject.h"
+#include "XSDK/XMutex.h"
+#include "XSDK/XCache.h"
 
 namespace EXPORTY
 {
+
+struct ProgressReport
+{
+    bool working;
+    float progress;
+};
 
 class Config
 {
@@ -35,6 +43,9 @@ public:
 
     X_API bool EnableDecodeSkipping() const;
 
+    X_API void UpdateProgress( const XSDK::XString& dataSourceID, float progress );
+    X_API ProgressReport GetProgress( const XSDK::XString& dataSourceID );
+
 private:
     Config( const Config& obj );
     Config& operator = ( const Config& obj );
@@ -46,6 +57,8 @@ private:
     bool _hasDRIDecoding;
     int _transcodeSleep;
     bool _enableDecodeSkipping;
+    XSDK::XMutex _cacheLok;
+    XSDK::XCache<ProgressReport> _progressCache;
 };
 
 }

@@ -263,8 +263,6 @@ TranscodeExport::TranscodeExport( XRef<Config> config,
                                   uint32_t bitRate,
                                   uint32_t maxRate,
                                   uint32_t bufSize,
-                                  uint32_t qmin,
-                                  uint32_t qmax,
                                   double frameRate,
                                   const XString& fileName,
                                   OverlayHAlign hAlign,
@@ -282,8 +280,6 @@ TranscodeExport::TranscodeExport( XRef<Config> config,
     _bitRate( bitRate ),
     _maxRate( maxRate ),
     _bufSize( bufSize ),
-    _qmin( qmin ),
-    _qmax( qmax ),
     _frameRate( frameRate ),
     _fileName( fileName ),
     _hAlign( hAlign ),
@@ -325,7 +321,6 @@ void TranscodeExport::Create( XIRef<XMemory> output )
     XRef<AVMuxer> muxer;
     XRef<ExportOverlay> ov;
     bool wroteToContainer = false;
-	bool sentProgress = false;
 
     auto lastProgressTime = steady_clock::now();
 
@@ -340,7 +335,6 @@ void TranscodeExport::Create( XIRef<XMemory> output )
         if( wroteToContainer && duration_cast<seconds>(now-lastProgressTime).count() > 2 )
         {
             _progress( _recorderURLS.PercentComplete() );
-			sentProgress = true;
             lastProgressTime = now;
         }
         
@@ -454,14 +448,9 @@ void TranscodeExport::Create( XIRef<XMemory> output )
         }
     }
 
-	if( wroteToContainer && !sentProgress )
-	{
-        _progress( _recorderURLS.PercentComplete() );
-		sentProgress = true;
-	}
-
-    if( !wroteToContainer )
-        X_STHROW( HTTP404Exception, ("No video was found during entire export."));
+	if( wroteToContainer )
+        _progress( 1.0 );
+    else X_STHROW( HTTP404Exception, ("No video was found during entire export."));
 
     if( outputToFile )
     {

@@ -13,11 +13,10 @@
 
 #include "XSDK/XSocket.h"
 #include "XSDK/XPath.h"
-
 #include "Webby/ClientSideRequest.h"
 #include "Webby/WebbyException.h"
-
 #include "FrameStoreClient/Media.h"
+#include <chrono>
 
 using namespace XSDK;
 using namespace EXPORTY;
@@ -25,8 +24,10 @@ using namespace WEBBY;
 using namespace FRAME_STORE_CLIENT;
 using namespace AVKit;
 using namespace std;
+using namespace std::chrono;
 
 LargeExport::LargeExport( XRef<Config> config,
+                          function<void(float)> progress,
                           const XString& dataSourceID,
                           const XString& startTime,
                           const XString& endTime,
@@ -39,7 +40,8 @@ LargeExport::LargeExport( XRef<Config> config,
     _fileName( fileName ),
     _recorderURLS( new RecorderURLS( dataSourceID, startTime, endTime, 6000, "video", false ) ),
     _muxer(),
-    _extension()
+    _extension(),
+    _progress(progress)
 {
 }
 
@@ -51,56 +53,77 @@ void LargeExport::Create( XIRef<XMemory> output )
 {
     XString tempFileName = _GetTMPName( _fileName );
 
-    XString recorderURI;
+    if( XPath::Exists(tempFileName) )
+        unlink(tempFileName.c_str());
 
+    bool wroteToContainer = false;
+
+    auto lastProgressTime = steady_clock::now();
+
+    XString recorderURI;
     while( _recorderURLS->GetNextURL( recorderURI ) )
     {
-        XIRef<XMemory> responseBuffer = FRAME_STORE_CLIENT::FetchMedia( _config->GetRecorderIP(),
-                                                                        _config->GetRecorderPort(),
-                                                                        recorderURI );
-
-        XIRef<ResultParser> resultParser = new ResultParser;
-
-        resultParser->Parse( responseBuffer );
-
-        XIRef<XMemory> sps = resultParser->GetSPS();
-        XIRef<XMemory> pps = resultParser->GetPPS();
-
-        if( _muxer.IsEmpty() )
+        auto now = steady_clock::now();
+        if( wroteToContainer && duration_cast<seconds>(now-lastProgressTime).count() > 2 )
         {
-            _muxer = new AVMuxer( _GetCodecOptions( sps,
-                                                    resultParser->GetSDPFrameRate(),
-                                                    _MeasureGOP( responseBuffer ) ),
-                                  tempFileName,
-                                  (output.IsEmpty()) ? AVMuxer::OUTPUT_LOCATION_FILE : AVMuxer::OUTPUT_LOCATION_BUFFER );
-
-            _muxer->SetExtraData( _GetExtraData( sps, pps ) );
+            _progress( _recorderURLS->PercentComplete() );
+            lastProgressTime = now;
         }
 
-        int videoStreamIndex = resultParser->GetVideoStreamIndex();
-
-        int streamIndex = 0;
-        while( resultParser->ReadFrame( streamIndex ) )
+        try
         {
-            if( streamIndex != videoStreamIndex )  // For now, we only support video stream exports.
-                continue;
+            XIRef<XMemory> responseBuffer = FRAME_STORE_CLIENT::FetchMedia( _config->GetRecorderIP(),
+                                                                            _config->GetRecorderPort(),
+                                                                            recorderURI );
 
-            XIRef<Packet> pkt = resultParser->Get();
+            XIRef<ResultParser> resultParser = new ResultParser;
 
-            _muxer->WriteVideoPacket( pkt, resultParser->IsKey() );
+            resultParser->Parse( responseBuffer );
+
+            XIRef<XMemory> sps = resultParser->GetSPS();
+            XIRef<XMemory> pps = resultParser->GetPPS();
+
+            if( _muxer.IsEmpty() )
+            {
+                _muxer = new AVMuxer( _GetCodecOptions( sps,
+                                                        resultParser->GetSDPFrameRate(),
+                                                        _MeasureGOP( responseBuffer ) ),
+                                      tempFileName,
+                                      (output.IsEmpty()) ? AVMuxer::OUTPUT_LOCATION_FILE : AVMuxer::OUTPUT_LOCATION_BUFFER );
+
+                _muxer->SetExtraData( _GetExtraData( sps, pps ) );
+            }
+
+            int videoStreamIndex = resultParser->GetVideoStreamIndex();
+
+            int streamIndex = 0;
+            while( resultParser->ReadFrame( streamIndex ) )
+            {
+                if( streamIndex != videoStreamIndex )  // For now, we only support video stream exports.
+                    continue;
+
+                XIRef<Packet> pkt = resultParser->Get();
+
+                _muxer->WriteVideoPacket( pkt, resultParser->IsKey() );
+                wroteToContainer = true;
+            }
+        }
+        catch( XException& ex )
+        {
+            X_LOG_NOTICE("Exception thrown while processing export. Continuing: %s",ex.what());
         }
     }
+
+	if( wroteToContainer )
+        _progress( 1.0 );
+    else X_STHROW( HTTP404Exception, ("No video was found during entire export."));
 
     if( output.IsEmpty() )
     {
         _muxer->FinalizeFile();
-
         rename( tempFileName.c_str(), _fileName.c_str() );
     }
-    else
-    {
-        _muxer->FinalizeBuffer( output );
-    }
+    else _muxer->FinalizeBuffer( output );
 }
 
 XString LargeExport::GetExtension() const

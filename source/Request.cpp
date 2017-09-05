@@ -182,14 +182,6 @@ void* Request::EntryPoint()
                     if( getArgs.Find( "buf_size" ) )
                         bufSize = *getArgs.Find( "buf_size" );
 
-                    XString qmin = "3";
-                    if( getArgs.Find( "qmin" ) )
-                        qmin = *getArgs.Find( "qmin" );
-
-                    XString qmax = "51";
-                    if( getArgs.Find( "qmax" ) )
-                        qmax = *getArgs.Find( "qmax" );
-
                     XString initialQP;
                     if( getArgs.Find( "initial_qp" ) )
                         initialQP = *getArgs.Find( "initial_qp" );
@@ -235,7 +227,7 @@ void* Request::EntryPoint()
                         }
 
                         XRef<TranscodeExport> te = new TranscodeExport( _server.GetConfig(),
-                                                                        [](int progress){},
+                                                                        [](float progress){},
                                                                         dataSourceID,
                                                                         startTime,
                                                                         endTime,
@@ -244,8 +236,6 @@ void* Request::EntryPoint()
                                                                         bitRate.ToUInt32(),
                                                                         maxRate.ToUInt32(),
                                                                         bufSize.ToUInt32(),
-                                                                        qmin.ToUInt32(),
-                                                                        qmax.ToUInt32(),
                                                                         framerate.ToDouble(),
                                                                         fileName,
                                                                         hAlign,
@@ -326,7 +316,27 @@ void* Request::EntryPoint()
                         _ChunkTransfer( _clientSocket, response, resultBuffer, "video/ts" );
                     }
                 }
-                else X_STHROW( HTTP400Exception, ("An http get occured against and unknown URI." ));
+                else if( fullURI.StartsWith("/progress") )
+                {
+                    XHash<XString> getArgs = uri.GetGetArgs();
+    
+                    XString filePath;
+                    if( getArgs.Find( "file_path" ) )
+                        filePath = *getArgs.Find( "file_path" );
+                    else X_STHROW( HTTP400Exception, ("file_path is required for POST on /transcoded_media." ));
+
+                    response.SetContentType("application/json");
+
+                    auto pr = this->_server.GetConfig()->GetProgress(filePath);
+
+                    XString report = XString::Format("{ \"data\": { \"working\": \"%s\", \"progress\": \"%f\" } }", (pr.working)?"true":"false", pr.progress );
+
+                    size_t reportLength = report.length();
+                    XIRef<XMemory> body = new XMemory( reportLength );
+                    memcpy( &body->Extend( reportLength ), report.c_str(), reportLength );
+                    response.SetBody(body);
+                }
+                else X_STHROW( HTTP404Exception, ("An http get occured against and unknown URI." ));
             }
             else if( requestMethod == "post" )
             {
@@ -368,14 +378,27 @@ void* Request::EntryPoint()
                     }
                     else X_STHROW( HTTP400Exception, ("file_path or file_name are required for /media queries.") );
 
+                    auto cfg = this->_server.GetConfig();
+                    cfg->UpdateProgress(fileNameOrPath, 0.f);
+
                     XRef<LargeExport> largeExport = new LargeExport( _server.GetConfig(),
+                                                                     [cfg, fileNameOrPath](float progress) {
+                                                                        cfg->UpdateProgress(fileNameOrPath, progress);
+                                                                     },
                                                                      dataSourceID,
                                                                      startTime,
                                                                      endTime,
                                                                      fileNameOrPath );
 
                     if( makesFile )
+                    {
+                        responseWritten = true;
+                        response.WriteResponse( _clientSocket );
+
                         largeExport->Create();
+
+                        cfg->UpdateProgress(fileNameOrPath, 1.f);
+                    }
                     else
                     {
                         XIRef<XMemory> output = new XMemory;
@@ -432,14 +455,6 @@ void* Request::EntryPoint()
                     if( getArgs.Find( "buf_size" ) )
                         bufSize = *getArgs.Find( "buf_size" );
 
-                    XString qmin = "3";
-                    if( getArgs.Find( "qmin" ) )
-                        qmin = *getArgs.Find( "qmin" );
-
-                    XString qmax = "51";
-                    if( getArgs.Find( "qmax" ) )
-                        qmax = *getArgs.Find( "qmax" );
-
                     XString framerate;
                     if( getArgs.Find( "framerate" ) )
                         framerate = *getArgs.Find( "framerate" );
@@ -483,21 +498,12 @@ void* Request::EntryPoint()
                             vAlign = V_ALIGN_BOTTOM;
                     }
 
+                    auto cfg = this->_server.GetConfig();
+                    cfg->UpdateProgress(filePath, 0.f);
+
                     XRef<TranscodeExport> te = new TranscodeExport( _server.GetConfig(),
-                                                                    [&](float progress) {
-                                                                        if( progress > 0.0 && !responseWritten )
-                                                                        {
-                                                                            responseWritten = true;
-                                                                            response.SetContentType("multipart/x-mixed-replace; boundary=\"progress\"");
-                                                                            response.WriteResponse( _clientSocket );
-                                                                        }
-                                                                        XHash<XString> headers;
-                                                                        headers.Add("Content-Type", "application/json");
-                                                                        XString report = XString::Format( "{ \"progress\": %f }", progress );
-                                                                        size_t reportLength = report.length();
-                                                                        XIRef<XMemory> chunk = new XMemory( reportLength );
-                                                                        memcpy( &chunk->Extend( reportLength ), report.c_str(), reportLength );
-                                                                        response.WritePart( _clientSocket, "progress", headers, chunk );
+                                                                    [cfg, filePath](float progress) {
+                                                                        cfg->UpdateProgress(filePath, progress);
                                                                     },
                                                                     dataSourceID,
                                                                     startTime,
@@ -507,8 +513,6 @@ void* Request::EntryPoint()
                                                                     bitRate.ToUInt32(),
                                                                     maxRate.ToUInt32(),
                                                                     bufSize.ToUInt32(),
-                                                                    qmin.ToUInt32(),
-                                                                    qmax.ToUInt32(),
                                                                     framerate.ToDouble(),
                                                                     filePath,
                                                                     hAlign,
@@ -517,9 +521,12 @@ void* Request::EntryPoint()
                                                                     withTime,
                                                                     speed.ToDouble() );
 
+                    responseWritten = true;
+                    response.WriteResponse( _clientSocket );
+
                     te->Create( XIRef<XMemory>() );
 
-                    response.WritePartFinalizer( "progress", _clientSocket );
+                    cfg->UpdateProgress(filePath, 1.f);
                 }
                 else X_STHROW( HTTP400Exception, ("An http post occured against and unknown URI." ));
             }

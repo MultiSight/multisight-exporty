@@ -14,6 +14,7 @@
 #include "XSDK/XPath.h"
 #include "XSDK/XDomParser.h"
 #include "XSDK/XDomParserNode.h"
+#include "XSDK/XGuard.h"
 #ifndef WIN32
 #include "VAKit/VAH264Encoder.h"
 #include "VAKit/VAH264Decoder.h"
@@ -35,7 +36,9 @@ Config::Config() :
     _hasDRIEncoding( false ),
     _hasDRIDecoding( false ),
     _transcodeSleep( 0 ),
-    _enableDecodeSkipping( false )
+    _enableDecodeSkipping( false ),
+    _cacheLok(),
+    _progressCache(10)
 {
     if( XPath::Exists( "config.xml" ) )
     {
@@ -142,4 +145,29 @@ int Config::GetTranscodeSleep() const
 bool Config::EnableDecodeSkipping() const
 {
     return _enableDecodeSkipping;
+}
+
+void Config::UpdateProgress( const XString& dataSourceID, float progress )
+{
+    XGuard g(_cacheLok);
+
+    ProgressReport pr;
+    pr.working = (progress<1.0) ? true : false;
+    pr.progress = progress;
+
+    _progressCache.Put( dataSourceID, pr );
+}
+
+ProgressReport Config::GetProgress( const XString& dataSourceID )
+{
+    XGuard g(_cacheLok);
+
+    ProgressReport pr;
+    if( !_progressCache.Get( dataSourceID, pr ) )
+    {
+        pr.working = false;
+        pr.progress = 0.0;
+    }
+
+    return pr;
 }

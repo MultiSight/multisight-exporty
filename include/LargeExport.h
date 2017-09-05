@@ -17,7 +17,7 @@
 #include "FrameStoreClient/RecorderURLS.h"
 #include "AVKit/AVMuxer.h"
 #include "AVKit/Options.h"
-
+#include <functional>
 #include "Config.h"
 
 namespace EXPORTY
@@ -27,6 +27,7 @@ class LargeExport : public XSDK::XBaseObject
 {
 public:
     LargeExport( XRef<Config> config,
+                 std::function<void(float)> progress,
                  const XSDK::XString& dataSourceID,
                  const XSDK::XString& startTime,
                  const XSDK::XString& endTime,
@@ -60,6 +61,7 @@ private:
     XRef<FRAME_STORE_CLIENT::RecorderURLS> _recorderURLS;
     XRef<AVKit::AVMuxer> _muxer;
     XSDK::XString _extension;
+    std::function<void(float)> _progress;
 };
 
 }
