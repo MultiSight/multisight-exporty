@@ -147,12 +147,12 @@ bool Config::EnableDecodeSkipping() const
     return _enableDecodeSkipping;
 }
 
-void Config::UpdateProgress( const XString& dataSourceID, float progress )
+void Config::UpdateProgress( const XString& dataSourceID, const XString& state, float progress )
 {
     XGuard g(_cacheLok);
 
     ProgressReport pr;
-    pr.working = (progress<1.0) ? true : false;
+    pr.state = state;
     pr.progress = progress;
 
     _progressCache.Put( dataSourceID, pr );
@@ -165,7 +165,7 @@ ProgressReport Config::GetProgress( const XString& dataSourceID )
     ProgressReport pr;
     if( !_progressCache.Get( dataSourceID, pr ) )
     {
-        pr.working = false;
+        pr.state = "unknown";
         pr.progress = 0.0;
     }
 

@@ -329,7 +329,7 @@ void* Request::EntryPoint()
 
                     auto pr = this->_server.GetConfig()->GetProgress(filePath);
 
-                    XString report = XString::Format("{ \"data\": { \"working\": \"%s\", \"progress\": \"%f\" } }", (pr.working)?"true":"false", pr.progress );
+                    XString report = XString::Format("{ \"data\": { \"state\": \"%s\", \"progress\": \"%f\" } }", pr.state.c_str(), pr.progress );
 
                     size_t reportLength = report.length();
                     XIRef<XMemory> body = new XMemory( reportLength );
@@ -379,11 +379,11 @@ void* Request::EntryPoint()
                     else X_STHROW( HTTP400Exception, ("file_path or file_name are required for /media queries.") );
 
                     auto cfg = this->_server.GetConfig();
-                    cfg->UpdateProgress(fileNameOrPath, 0.f);
+                    cfg->UpdateProgress(fileNameOrPath, "preparing", 0.f);
 
                     XRef<LargeExport> largeExport = new LargeExport( _server.GetConfig(),
                                                                      [cfg, fileNameOrPath](float progress) {
-                                                                        cfg->UpdateProgress(fileNameOrPath, progress);
+                                                                        cfg->UpdateProgress(fileNameOrPath, "preparing", progress);
                                                                      },
                                                                      dataSourceID,
                                                                      startTime,
@@ -395,9 +395,26 @@ void* Request::EntryPoint()
                         responseWritten = true;
                         response.WriteResponse( _clientSocket );
 
-                        largeExport->Create();
+                        bool exceptionThrown = false;
 
-                        cfg->UpdateProgress(fileNameOrPath, 1.f);
+                        try
+                        {
+                            largeExport->Create();
+                        }
+                        catch(HTTP404Exception& ex)
+                        {
+                            X_LOG_NOTICE("Export failed: %s",ex.what());
+                            cfg->UpdateProgress(fileNameOrPath, "failed", 1.f);
+                            exceptionThrown = true;
+                        }
+                        catch(...)
+                        {
+                            cfg->UpdateProgress(fileNameOrPath, "failed", 1.f);
+                            exceptionThrown = true;
+                        }
+
+                        if( !exceptionThrown )
+                            cfg->UpdateProgress(fileNameOrPath, "complete", 1.f);
                     }
                     else
                     {
@@ -499,11 +516,11 @@ void* Request::EntryPoint()
                     }
 
                     auto cfg = this->_server.GetConfig();
-                    cfg->UpdateProgress(filePath, 0.f);
+                    cfg->UpdateProgress(filePath, "preparing", 0.f);
 
                     XRef<TranscodeExport> te = new TranscodeExport( _server.GetConfig(),
                                                                     [cfg, filePath](float progress) {
-                                                                        cfg->UpdateProgress(filePath, progress);
+                                                                        cfg->UpdateProgress(filePath, "preparing", progress);
                                                                     },
                                                                     dataSourceID,
                                                                     startTime,
@@ -524,9 +541,26 @@ void* Request::EntryPoint()
                     responseWritten = true;
                     response.WriteResponse( _clientSocket );
 
-                    te->Create( XIRef<XMemory>() );
+                    bool exceptionThrown = false;
 
-                    cfg->UpdateProgress(filePath, 1.f);
+                    try
+                    {
+                        te->Create( XIRef<XMemory>() );
+                    }
+                    catch(HTTP404Exception& ex)
+                    {
+                        X_LOG_NOTICE("Export failed: %s",ex.what());
+                        cfg->UpdateProgress(filePath, "failed", 1.f);
+                        exceptionThrown = true;
+                    }
+                    catch(...)
+                    {
+                        cfg->UpdateProgress(filePath, "failed", 1.f);
+                        exceptionThrown = true;
+                    }
+
+                    if( !exceptionThrown )
+                        cfg->UpdateProgress(filePath, "complete", 1.f);
                 }
                 else X_STHROW( HTTP400Exception, ("An http post occured against and unknown URI." ));
             }

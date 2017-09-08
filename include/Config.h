@@ -15,13 +15,14 @@
 #include "XSDK/XBaseObject.h"
 #include "XSDK/XMutex.h"
 #include "XSDK/XCache.h"
+#include "XSDK/XString.h"
 
 namespace EXPORTY
 {
 
 struct ProgressReport
 {
-    bool working;
+    XSDK::XString state;
     float progress;
 };
 
@@ -43,7 +44,7 @@ public:
 
     X_API bool EnableDecodeSkipping() const;
 
-    X_API void UpdateProgress( const XSDK::XString& dataSourceID, float progress );
+    X_API void UpdateProgress( const XSDK::XString& dataSourceID, const XSDK::XString& state, float progress );
     X_API ProgressReport GetProgress( const XSDK::XString& dataSourceID );
 
 private:
