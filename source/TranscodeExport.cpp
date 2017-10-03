@@ -38,7 +38,6 @@ int TranscodeExport::_exportsInProgress = 0;
 
 ExportOverlay::ExportOverlay( const XSDK::XString& msg,
                               bool withTime,
-                              XSDK::XTime clockTime,
                               OverlayHAlign hAlign,
                               OverlayVAlign vAlign,
                               uint16_t width,
@@ -48,7 +47,6 @@ ExportOverlay::ExportOverlay( const XSDK::XString& msg,
     _msg( msg ),
     _decodedMsg(),
     _withTime( withTime ),
-    _clockTime( clockTime ),
     _hAlign( hAlign ),
     _vAlign( vAlign ),
     _width( width ),
@@ -102,10 +100,8 @@ ExportOverlay::~ExportOverlay() throw()
     cairo_surface_destroy( _wmSurface );
 }
 
-XIRef<Packet> ExportOverlay::Process( XIRef<Packet> input )
+XIRef<Packet> ExportOverlay::Process( XIRef<Packet> input, int64_t clockTime )
 {
-    _clockTime += XDuration( MSECS, (int)(_timePerFrame * 1000) );
-
     cairo_surface_t* surface = NULL;
     cairo_t* cr = NULL;
 
@@ -154,7 +150,7 @@ XIRef<Packet> ExportOverlay::Process( XIRef<Packet> input )
             _DrawMessage( cr, layout, msgX, y );
 
         if( _withTime )
-            _DrawTime( cr, timeX, y );
+            _DrawTime( cr, timeX, y, clockTime );
 
         g_object_unref( layout );
 
@@ -230,9 +226,9 @@ void ExportOverlay::_DrawMessage( cairo_t* cr, PangoLayout* layout, uint16_t msg
     pango_cairo_show_layout( cr, layout );
 }
 
-void ExportOverlay::_DrawTime( cairo_t* cr, uint16_t timeX, uint16_t y )
+void ExportOverlay::_DrawTime( cairo_t* cr, uint16_t timeX, uint16_t y, int64_t clockTime )
 {
-    int64_t milliTime = _clockTime.ToUnixTimeAsMSecs();
+    auto milliTime = clockTime;
 
     time_t ts = (time_t)(milliTime / 1000);
     struct tm* bdt = localtime( &ts );
@@ -410,7 +406,6 @@ void TranscodeExport::Create( XIRef<XMemory> output )
                         if( ov.IsEmpty() )
                             ov = new ExportOverlay( _msg,
                                                     _withTime,
-                                                    XTime::CreateFromUnixTimeAsMSecs( resultParser.GetFrameTS() ),
                                                     _hAlign,
                                                     _vAlign,
                                                     decoder.GetOutputWidth(),
@@ -422,7 +417,7 @@ void TranscodeExport::Create( XIRef<XMemory> output )
 
                         XIRef<Packet> rgb = yuvToARGB->Get();
 
-                        XIRef<Packet> withOverlay = ov->Process( rgb );
+                        XIRef<Packet> withOverlay = ov->Process( rgb, resultParser.GetFrameTS() );
 
                         argbToYUV->Transform( withOverlay, decoder.GetOutputWidth(), decoder.GetOutputHeight() );
 

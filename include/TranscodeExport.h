@@ -45,7 +45,6 @@ class ExportOverlay
 public:
     ExportOverlay( const XSDK::XString& msg,
                    bool withTime,
-                   XSDK::XTime clockTime,
                    OverlayHAlign hAlign,
                    OverlayVAlign vAlign,
                    uint16_t width,
@@ -55,17 +54,16 @@ public:
 
     virtual ~ExportOverlay() throw();
 
-    XIRef<AVKit::Packet> Process( XIRef<AVKit::Packet> input );
+    XIRef<AVKit::Packet> Process( XIRef<AVKit::Packet> input, int64_t clockTime );
 
 private:
     void _GetXPositions( uint16_t& timeX, uint16_t& msgX, uint16_t messageWidth, uint16_t& bgX, uint16_t& bgWidth );
     void _DrawMessage( cairo_t* cr, PangoLayout* layout, uint16_t msgX, uint16_t y );
-    void _DrawTime( cairo_t* cr, uint16_t timeX, uint16_t y );
+    void _DrawTime( cairo_t* cr, uint16_t timeX, uint16_t y, int64_t clockTime );
 
     XSDK::XString _msg;
     XSDK::XString _decodedMsg;
     bool _withTime;
-    XSDK::XTime _clockTime;
     OverlayHAlign _hAlign;
     OverlayVAlign _vAlign;
     uint16_t _width;
