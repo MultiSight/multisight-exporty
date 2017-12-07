@@ -130,9 +130,13 @@ void* Request::EntryPoint()
                         bitRate = *getArgs.Find( "bit_rate" );
                     else bitRate = "10000000";
 
+					bool precise = (getArgs.Find("precise") && (*getArgs.Find("precise") == "true"))?true:false;
+
                     response.SetContentType("image/jpeg");
 
-                    response.SetBody( CreateJPEGThumbnail( _server.GetConfig(), dataSourceID, timeString, width.ToUInt16(), height.ToUInt16(), qmax.ToUInt32(), qmin.ToUInt32(), bitRate.ToUInt32() ) );
+                    if( precise )
+                        response.SetBody( CreatePreciseJPEGThumbnail( _server.GetConfig(), dataSourceID, timeString, width.ToUInt16(), height.ToUInt16(), qmax.ToUInt32(), qmin.ToUInt32(), bitRate.ToUInt32() ) );
+                    else response.SetBody( CreateJPEGThumbnail( _server.GetConfig(), dataSourceID, timeString, width.ToUInt16(), height.ToUInt16(), qmax.ToUInt32(), qmin.ToUInt32(), bitRate.ToUInt32() ) );
                 }
                 else if( fullURI.StartsWith( "/transcoded_media" ) )
                 {

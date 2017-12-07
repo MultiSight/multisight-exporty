@@ -13,6 +13,7 @@
 
 #include "XSDK/XSocket.h"
 #include "XSDK/XTime.h"
+#include "XSDK/XDuration.h"
 #include "Webby/ClientSideRequest.h"
 #include "Webby/ClientSideResponse.h"
 #include "Webby/WebbyException.h"
@@ -21,6 +22,8 @@
 #include "AVKit/JPEGEncoder.h"
 #include "AVKit/Options.h"
 #include "FrameStoreClient/Frame.h"
+#include "FrameStoreClient/Media.h"
+#include "FrameStoreClient/ResultParser.h"
 
 using namespace EXPORTY;
 using namespace XSDK;
@@ -88,6 +91,67 @@ XIRef<XMemory> CreateJPEGThumbnail( XRef<Config> config,
 
     memcpy( &result->Extend( encodedPkt->GetDataSize() ), encodedPkt->Map(), encodedPkt->GetDataSize() );
 
+    return result;
+}
+
+XIRef<XSDK::XMemory> CreatePreciseJPEGThumbnail( XRef<Config> config,
+                                                 const XSDK::XString& dataSourceID,
+                                                 const XSDK::XString& time,
+                                                 uint16_t destWidth,
+                                                 uint16_t destHeight,
+                                                 uint32_t qmax,
+                                                 uint32_t qmin,
+                                                 uint32_t bitRate )
+{
+    XGuard g( locky );
+    
+    XRef<H264Decoder> decoder = new H264Decoder( _GetDecoderCodecOptions() );
+
+    auto startTime = XTime::FromISOExtString(time);
+    auto startTimeMillis = startTime.ToUnixTimeAsMSecs();
+    auto endTimeString = (startTime + XDuration(SECONDS, 1)).ToISOExtString();
+
+    XIRef<XSDK::XMemory> buf = FRAME_STORE_CLIENT::FetchMedia( config->GetRecorderIP(),
+                                                               config->GetRecorderPort(),
+                                                               dataSourceID,
+                                                               time,
+                                                               endTimeString );
+
+    XIRef<FRAME_STORE_CLIENT::ResultParser> resultParser = new FRAME_STORE_CLIENT::ResultParser;
+    resultParser->Parse( buf );
+
+    int si;
+    bool done = false;
+    while(!done && resultParser->ReadFrame( si ) )
+    {
+        decoder->Decode( resultParser->Get() );
+
+        if(resultParser->GetFrameTS() >= startTimeMillis)
+            done = true;
+    }
+
+    uint16_t correctedWidth = 0, correctedHeight = 0;
+    
+    AspectCorrectDimensions( decoder->GetInputWidth(), decoder->GetInputHeight(),
+                             destWidth, destHeight,
+                             correctedWidth, correctedHeight );
+    
+    decoder->SetOutputWidth( correctedWidth );
+    decoder->SetOutputHeight( correctedHeight );
+    
+    XRef<JPEGEncoder> encoder = new JPEGEncoder( GetJPEGOptions( correctedWidth, correctedHeight, bitRate, qmin, qmax ) );
+    
+    encoder->EncodeYUV420P( decoder->Get() );
+    
+    // This code can be optimized... If the return value of this function was modified to be AVPacket, we could avoid
+    // a buffer copy here...
+    
+    XIRef<Packet> encodedPkt = encoder->Get();
+    
+    XIRef<XMemory> result = new XMemory;
+    
+    memcpy( &result->Extend( encodedPkt->GetDataSize() ), encodedPkt->Map(), encodedPkt->GetDataSize() );
+    
     return result;
 }
 
